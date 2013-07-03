@@ -1,0 +1,4 @@
+This is library for computing high-performance Haar wavelet transforms over the
+CPU
+
+It uses (when available) all the vectorization features from modern CPUs.
