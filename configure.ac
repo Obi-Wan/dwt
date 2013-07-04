@@ -9,15 +9,15 @@ m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_FILES([
-	Makefile
+  Makefile
   include/Makefile
-	src/Makefile
+  src/Makefile
 ])
 
 CFLAGS="${CFLAGS=}"
 CXXFLAGS="${CXXFLAGS=}"
 AC_SUBST([CFLAGS],["${CFLAGS} -Wall"])
-AC_SUBST([CXXFLAGS],["${CXXFLAGS} -Wall -std=c++0x"])
+AC_SUBST([CXXFLAGS],["${CXXFLAGS} -Wall -std=c++11"])
 
 ###############################################################################
 # Debug builds
