@@ -10,6 +10,8 @@
 
 #include "dwt_definitions.h"
 
+#include <cstdlib>
+
 #include <vector>
 
 namespace dwt {
@@ -26,6 +28,17 @@ namespace dwt {
 
       void
       check_3d() const;
+
+      CopyProperties() = default;
+      CopyProperties(const CopyProperties & old) = default;
+      CopyProperties(const vector<size_t> & dest_dims, const vector<size_t> & src_dims)
+      : dims(dest_dims)
+      {
+        // XXX - Should check dimensions!!
+        // XXX - this assumes destination is contiguous and always smaller than source!!!
+        this->src_skip = vector<size_t>(src_dims.begin()+1, src_dims.end());
+        this->dest_skip = vector<size_t>(src_dims.size()-1, 0);
+      }
     };
 
   protected:
@@ -43,9 +56,60 @@ namespace dwt {
     template<typename Type>
     void
     AVX(strided_3D_copy)(Type * const dest, const Type * const src, const CopyProperties & props);
+    template<typename Type>
+    void
+    UNOPTIM(strided_3D_copy)(Type * const dest, const Type * const src, const CopyProperties & props);
+
+    template<typename Type, size_t vector_byte_size>
+    static Type *
+    get_memory(size_t numel);
   };
 
 } /* namespace dwt */
+
+//dwt::DwtMemoryManager::CopyProperties(const vector<size_t> & dest_dims, const vector<size_t> & src_dims)
+//: dims(dest_dims)
+//{
+//	// XXX - Should check dimensions!!
+//	// XXX - this assumes destination is contiguous and always smaller than source!!!
+//	this->src_skip = vector<size_t>(src_dims.begin()+1, src_dims.end());
+//	this->dest_skip = vector<size_t>(src_dims.size()-1, 0);
+//}
+
+template<typename Type>
+void
+dwt::DwtMemoryManager::UNOPTIM(strided_3D_copy)(Type * const dest, const Type * const src, const CopyProperties & props)
+{
+  props.check_3d();
+
+  const size_t & length_line = props.dims[0];
+  const size_t & num_lines_1 = props.dims[1];
+  const size_t & num_lines_2 = props.dims[2];
+
+  const size_t & dest_skip_1 = props.dest_skip[0];
+  const size_t & dest_skip_2 = props.dest_skip[1];
+
+  const size_t & src_skip_1 = props.src_skip[0];
+  const size_t & src_skip_2 = props.src_skip[1];
+
+#pragma omp for
+  for(size_t line2 = 0; line2 < num_lines_2; line2++)
+  {
+    const Type * const src_2 = src + line2 * src_skip_2;
+    Type * const dest_2 = dest + line2 * dest_skip_2;
+
+    for(size_t line1 = 0; line1 < num_lines_1; line1++)
+    {
+      const Type * const src_1 = src_2 + line1 * src_skip_1;
+      Type * const dest_1 = dest_2 + line1 * dest_skip_1;
+
+      for(size_t pixel = 0; pixel < length_line; pixel++)
+      {
+        dest_1[pixel] = src_1[pixel];
+      }
+    }
+  }
+}
 
 template<typename Type, size_t vector_byte_size>
 INLINE void
@@ -113,6 +177,15 @@ INLINE void
 dwt::DwtMemoryManager::AVX(strided_3D_copy)(Type * const dest, const Type * const src, const CopyProperties & props)
 {
   strided_3D_copy_vec<Type, 32>(dest, src, props);
+}
+
+template<typename Type, size_t vector_byte_size>
+static Type *
+get_memory(size_t numel)
+{
+	Type * out = NULL;
+	posix_memalign(out, vector_byte_size, numel);
+	return out;
 }
 
 #endif /* DWTMEMORYMANAGER_H_ */
