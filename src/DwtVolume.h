@@ -1,5 +1,5 @@
 /*
- * DwtVolume.h
+ * DwtV	olume.h
  *
  *  Created on: Jul 5, 2013
  *      Author: vigano
@@ -16,47 +16,59 @@
 
 namespace dwt {
 
-	template<typename Type>
-	class DwtVolume {
-	protected:
-		Type * data;
+  class DwtMultiDimensional {
+  protected:
+    vector<size_t> dims;
 
-		vector<size_t> dims;
+    template<typename ... Dims>
+    void
+    add_dims(const size_t & dim, Dims ... dims);
+    void
+    add_dims() { }
 
-		template<typename ... Dims>
-		void
-		add_dims(const size_t & dim, Dims ... dims);
-		void
-		add_dims() { }
+    size_t
+    compute_cum_prod(const vector<size_t> & elems) const;
 
-		size_t
-		compute_cum_prod(const vector<size_t> & elems) const;
-	public:
-		template<typename ... Dims>
-		DwtVolume(Type * _data, Dims ... dims);
-		DwtVolume(Type * _data, const vector<size_t> & _dims)
-		: data(_data), dims(_dims) { }
-		DwtVolume(const vector<size_t> & _dims);
+  public:
+    const vector<size_t> &
+    get_dims() const { return dims; }
 
-		virtual ~DwtVolume();
+    size_t size() const;
 
-		size_t size() const;
+    void
+    check_dims(const size_t & num_dims, const size_t & level);
+  };
 
-		const Type *
-		get_data() const { return data; }
-		Type *
-		get_data() { return data; }
+  template<typename Type>
+  class DwtVolume : public DwtMultiDimensional {
+  protected:
+    Type * data;
 
-		DwtVolume<Type> *
-		get_sub_volume(const vector<size_t> & lims);
-	};
+  public:
+    template<typename ... Dims>
+    DwtVolume(Type * _data, Dims ... dims);
+    DwtVolume(Type * _data, const vector<size_t> & _dims)
+    : data(_data), dims(_dims) { }
+    DwtVolume(const vector<size_t> & _dims);
+
+    virtual ~DwtVolume();
+
+    const Type *
+    get_data() const { return data; }
+    Type *
+    get_data() { return data; }
+
+    DwtVolume<Type> *
+    get_sub_volume(const vector<size_t> & lims);
+    void
+    set_sub_volume(const DwtVolume<Type> & sub_vol);
+  };
 
 } /* namespace dwt */
 
-template<typename Type>
 template<typename ... Dims>
 void
-dwt::DwtVolume<Type>::add_dims(const size_t & dim, Dims ... dims)
+dwt::DwtMultiDimensional::add_dims(const size_t & dim, Dims ... dims)
 {
 	this->dims.push_back(dim);
 	add_dims(dims ...);
@@ -71,31 +83,25 @@ dwt::DwtVolume<Type>::DwtVolume(Type * _data, Dims ... dims)
 }
 
 template<typename Type>
-size_t
-compute_cum_prod(const vector<size_t> & elems) const
-{
-	size_t cumprod = 1;
-	for (size_t elem : elems) { cumprod *=  elem; }
-	return cumprod;
-}
-
-template<typename Type>
-size_t
-dwt::DwtVolume<Type>::size() const
-{
-	return compute_cum_prod(dims);
-}
-
-template<typename Type>
 dwt::DwtVolume<Type> *
 dwt::DwtVolume<Type>::get_sub_volume(const vector<size_t> & lims)
 {
-	Type * out = DwtMemoryManager::get_memory<Type>(compute_cum_prod(lims));
-	DwtMemoryManager copier;
-	DwtMemoryManager::CopyProperties props(lims, this->dims);
+  Type * out = DwtMemoryManager::get_memory<Type>(compute_cum_prod(lims));
+  DwtMemoryManager copier;
+  DwtMemoryManager::CopyProperties props(lims, this->dims);
 
-	copier.DEFAULT(strided_3D_copy)(out, data, props);
-	return new DwtVolume<Type>(out, lims);
+  copier.DEFAULT(strided_3D_copy)(out, data, props);
+  return new DwtVolume<Type>(out, lims);
+}
+
+template<typename Type>
+void
+dwt::DwtVolume<Type>::set_sub_volume(const dwt::DwtVolume<Type> & sub_vol)
+{
+  DwtMemoryManager copier;
+  DwtMemoryManager::CopyProperties props(this->dims, sub_vol.get_dims());
+
+  copier.DEFAULT(strided_3D_copy)(data, sub_vol, props);
 }
 
 
