@@ -9,13 +9,4 @@
 
 namespace dwt {
 
-DwtTransform::DwtTransform() {
-	// TODO Auto-generated constructor stub
-
-}
-
-DwtTransform::~DwtTransform() {
-	// TODO Auto-generated destructor stub
-}
-
 } /* namespace dwt */

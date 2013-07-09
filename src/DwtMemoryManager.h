@@ -16,6 +16,25 @@
 
 namespace dwt {
 
+  template<typename Type>
+  class DwtContainer {
+  protected:
+    Type * data;
+
+  public:
+    DwtContainer() : data(NULL) { }
+    DwtContainer(Type * _data) : data(_data) { }
+    virtual
+    ~DwtContainer() { delete data; }
+
+    const Type *
+    get_data() const { return data; }
+    Type *
+    get_data() { return data; }
+    void
+    set_data(Type * _data) { data = _data; }
+  };
+
   class DwtMemoryManager {
   /** Right now there's no real memory management: only static helper functions
    */
@@ -31,54 +50,35 @@ namespace dwt {
 
       CopyProperties() = default;
       CopyProperties(const CopyProperties & old) = default;
-      CopyProperties(const vector<size_t> & dest_dims, const vector<size_t> & src_dims)
-      : dims(dest_dims)
-      {
-        // XXX - Should check dimensions!!
-        // XXX - this assumes destination is contiguous and always smaller than source!!!
-        this->src_skip = vector<size_t>(src_dims.begin()+1, src_dims.end());
-        this->dest_skip = vector<size_t>(src_dims.size()-1, 0);
-      }
+      CopyProperties(const vector<size_t> & dest_dims, const vector<size_t> & src_dims);
     };
 
-  protected:
-    template<typename Type, size_t vector_byte_size>
-    void
-    strided_3D_copy_vec(Type * const dest, const Type * const src, const CopyProperties & props);
-  public:
     DwtMemoryManager() = default;
     virtual
     ~DwtMemoryManager() = default;
 
     template<typename Type>
     void
-    SSE2(strided_3D_copy)(Type * const dest, const Type * const src, const CopyProperties & props);
-    template<typename Type>
-    void
-    AVX(strided_3D_copy)(Type * const dest, const Type * const src, const CopyProperties & props);
+    VECTORIZED(strided_3D_copy)(Type * const dest, const Type * const src, const CopyProperties & props);
     template<typename Type>
     void
     UNOPTIM(strided_3D_copy)(Type * const dest, const Type * const src, const CopyProperties & props);
 
-    template<typename Type, size_t vector_byte_size>
+    template<typename Type>
     static Type *
     get_memory(size_t numel);
+
+    template<typename Type>
+    static Type *
+    dispose_container(DwtContainer<Type> * container);
   };
 
 } /* namespace dwt */
 
-//dwt::DwtMemoryManager::CopyProperties(const vector<size_t> & dest_dims, const vector<size_t> & src_dims)
-//: dims(dest_dims)
-//{
-//	// XXX - Should check dimensions!!
-//	// XXX - this assumes destination is contiguous and always smaller than source!!!
-//	this->src_skip = vector<size_t>(src_dims.begin()+1, src_dims.end());
-//	this->dest_skip = vector<size_t>(src_dims.size()-1, 0);
-//}
-
 template<typename Type>
 void
-dwt::DwtMemoryManager::UNOPTIM(strided_3D_copy)(Type * const dest, const Type * const src, const CopyProperties & props)
+dwt::DwtMemoryManager::UNOPTIM(strided_3D_copy)(
+    Type * const dest, const Type * const src, const CopyProperties & props)
 {
   props.check_3d();
 
@@ -111,9 +111,9 @@ dwt::DwtMemoryManager::UNOPTIM(strided_3D_copy)(Type * const dest, const Type * 
   }
 }
 
-template<typename Type, size_t vector_byte_size>
+template<typename Type>
 INLINE void
-dwt::DwtMemoryManager::strided_3D_copy_vec(Type * const dest, const Type * const src, const CopyProperties & props)
+dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(Type * const dest, const Type * const src, const CopyProperties & props)
 {
   props.check_3d();
 
@@ -127,9 +127,9 @@ dwt::DwtMemoryManager::strided_3D_copy_vec(Type * const dest, const Type * const
   const size_t & src_skip_1 = props.src_skip[0];
   const size_t & src_skip_2 = props.src_skip[1];
 
-  typedef float vVvf __attribute__((vector_size(vector_byte_size))) __attribute__((aligned(vector_byte_size)));
+  typedef float vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
   const size_t unrolling = 8;
-  const size_t shift = vector_byte_size / sizeof(Type);
+  const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
   const size_t block = shift * unrolling;
 
   const size_t unroll_length_line = ROUND_DOWN(length_line, block);
@@ -166,26 +166,24 @@ dwt::DwtMemoryManager::strided_3D_copy_vec(Type * const dest, const Type * const
 }
 
 template<typename Type>
-INLINE void
-dwt::DwtMemoryManager::SSE2(strided_3D_copy)(Type * const dest, const Type * const src, const CopyProperties & props)
-{
-  strided_3D_copy_vec<Type, 16>(dest, src, props);
-}
-
-template<typename Type>
-INLINE void
-dwt::DwtMemoryManager::AVX(strided_3D_copy)(Type * const dest, const Type * const src, const CopyProperties & props)
-{
-  strided_3D_copy_vec<Type, 32>(dest, src, props);
-}
-
-template<typename Type, size_t vector_byte_size>
 static Type *
 get_memory(size_t numel)
 {
 	Type * out = NULL;
-	posix_memalign(out, vector_byte_size, numel);
+	posix_memalign(out, DWT_MEMORY_ALIGN, numel);
 	return out;
+}
+
+template<typename Type>
+static Type *
+dispose_container(dwt::DwtContainer<Type> * container)
+{
+  Type * out = container->get_data();
+
+  container->set_data(NULL);
+  delete container;
+
+  return out;
 }
 
 #endif /* DWTMEMORYMANAGER_H_ */

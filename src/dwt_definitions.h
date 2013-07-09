@@ -80,10 +80,15 @@ typedef unsigned __int64 uint64_t;
 #define SSE3(x) sse3_##x
 #define SSE2(x) sse2_##x
 #define UNOPTIM(x) unoptimized_##x
+#define VECTORIZED(x) vectorized_##x
 
 #define DEFAULT(x) UNOPTIM(x)
 
-
+#ifdef __AVX__
+# define DWT_MEMORY_ALIGN 32
+#else
+# define DWT_MEMORY_ALIGN 16
+#endif
 
 using namespace std;
 
