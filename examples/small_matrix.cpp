@@ -10,7 +10,7 @@
 
 using namespace std;
 
-float matrix[] = {
+vector<float> matrix = {
     10, 10,  8, 8, 5, 5, 3, 1,
     10, 12, 10, 8, 7, 8, 4, 2,
     12,  8,  7, 6, 5, 4, 3, 1,
@@ -58,33 +58,43 @@ main()
   dims.push_back(8);
   dims.push_back(8);
   dims.push_back(4);
+  vector<float> original_matrix(matrix.begin(), matrix.end());
 
-  print_volume(matrix, dims);
+  print_volume(matrix.data(), dims);
 
   string error_msg_buff;
-  if (!dwt_haar(matrix, dims, 2, true, error_msg_buff))
+  if (!dwt_haar(matrix.data(), dims, 2, true, error_msg_buff))
   {
     printf("Error! %s\n", error_msg_buff.c_str());
   }
 
-  print_volume(matrix, dims);
+  print_volume(matrix.data(), dims);
 
-  if (!dwt_haar(matrix, dims, 2, false, error_msg_buff))
+  if (!dwt_haar(matrix.data(), dims, 2, false, error_msg_buff))
   {
     printf("Error! %s\n", error_msg_buff.c_str());
   }
 
-  print_volume(matrix, dims);
+  for (size_t count = 0; count < matrix.size(); count++)
+  {
+    matrix[count] -= original_matrix[count];
+  }
+  print_volume(matrix.data(), dims);
 }
 
 void
 print_volume(const float * const vol, const vector<unsigned int> & dims)
 {
-  for(size_t count1 = 0; count1 < dims[0]; count1++)
+  printf("Printing first layer:\n");
+  for(size_t count2 = 0; count2 < dims[2]; count2++)
   {
-    for(size_t count2 = 0; count2 < dims[1]; count2++)
+    for(size_t count1 = 0; count1 < dims[1]; count1++)
     {
-      printf(" %f", matrix[count1*8+count2]);
+      for(size_t count0 = 0; count0 < dims[0]; count0++)
+      {
+        printf(" %e", matrix[count2*8*8 + count1*8 + count0]);
+      }
+      printf("\n");
     }
     printf("\n");
   }
