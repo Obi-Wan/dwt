@@ -208,7 +208,7 @@ dwt::DwtTransform<Type>::UNOPTIM(inverse_dim_0)(DwtVolume<Type> & dest, const Dw
       const Type * const src_half_line = src_line + line_length / 2;
       Type * const dest_line = dest_area + line_length * line_num;
 
-      for(size_t src_pixel = 0, dest_pixel = 0; src_pixel < line_length;
+      for(size_t src_pixel = 0, dest_pixel = 0; src_pixel < line_length / 2;
           src_pixel++, dest_pixel += 2)
       {
         dest_line[dest_pixel] = (src_line[src_pixel] + src_half_line[src_pixel]) * COEFF;
@@ -306,7 +306,7 @@ dwt::DwtTransform<Type>::UNOPTIM(direct_dim_2)(DwtVolume<Type> & dest, const Dwt
     const Type * const src_area = src.get_data() + area_length * area_num;
     const Type * const src_next_area = src_area + area_length;
 
-    Type * const dest_area = dest.get_data() + area_length * area_num;
+    Type * const dest_area = dest.get_data() + area_length * area_num / 2;
     Type * const dest_half_num_areas = dest.get_data() + area_length * (area_num + tot_areas) / 2;
 
     for(size_t pixel = 0; pixel < area_length; pixel++)
@@ -332,7 +332,7 @@ dwt::DwtTransform<Type>::UNOPTIM(inverse_dim_2)(DwtVolume<Type> & dest, const Dw
 #pragma omp for
   for (size_t area_num = 0; area_num < tot_areas; area_num += 2)
   {
-    const Type * const src_area = src.get_data() + area_length * area_num;
+    const Type * const src_area = src.get_data() + area_length * area_num / 2;
     const Type * const src_half_num_areas = src.get_data() + area_length * (area_num + tot_areas) / 2;
 
     Type * const dest_area = dest.get_data() + area_length * area_num;
