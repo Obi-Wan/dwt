@@ -89,7 +89,7 @@ dwt::DwtMemoryManager::UNOPTIM(strided_3D_copy)(
 #pragma omp for
   for(size_t num_area = 0; num_area < tot_areas; num_area++)
   {
-    const Type * const src_area = src + num_area * src_skip_2 * dest_skip_1;
+    const Type * const src_area = src + num_area * src_skip_2 * src_skip_1;
     Type * const dest_area = dest + num_area * dest_skip_2 * dest_skip_1;
 
     for(size_t num_line = 0; num_line < tot_lines; num_line++)
