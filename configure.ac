@@ -12,6 +12,7 @@ AC_CONFIG_FILES([
   Makefile
   include/Makefile
   src/Makefile
+  examples/Makefile
 ])
 
 CFLAGS="${CFLAGS=}"
