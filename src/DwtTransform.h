@@ -334,7 +334,7 @@ dwt::DwtTransform<Type>::UNOPTIM(inverse_dim_2)(DwtVolume<Type> & dest, const Dw
   const size_t area_length = line_length * tot_lines;
 
 #pragma omp for
-  for (size_t area_num = 0; area_num < tot_areas; area_num++)
+  for (size_t area_num = 0; area_num < tot_areas; area_num += 2)
   {
     const Type * const src_area = src.get_data() + area_length * area_num;
     const Type * const src_half_num_areas = src.get_data() + area_length * (area_num + tot_areas) / 2;
