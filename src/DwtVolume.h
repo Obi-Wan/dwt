@@ -54,6 +54,8 @@ namespace dwt {
     DwtVolume<Type> *
     get_sub_volume(const vector<size_t> & lims);
     void
+    get_sub_volume(DwtVolume<Type> & sub_vol);
+    void
     set_sub_volume(const DwtVolume<Type> & sub_vol);
   };
 
@@ -79,19 +81,31 @@ template<typename Type>
 dwt::DwtVolume<Type>::DwtVolume(const vector<size_t> & _dims)
 : DwtMultiDimensional(_dims)
 {
-  this->data = DwtMemoryManager::get_memory<Type>(compute_cum_prod(dims));
+  this->data = DwtMemoryManager::get_memory<Type>(this->compute_cum_prod(dims));
 }
 
 template<typename Type>
 dwt::DwtVolume<Type> *
 dwt::DwtVolume<Type>::get_sub_volume(const vector<size_t> & lims)
 {
-  Type * out = DwtMemoryManager::get_memory<Type>(compute_cum_prod(lims));
+#pragma omp single
+  Type * out = DwtMemoryManager::get_memory<Type>(this->compute_cum_prod(lims));
+
   DwtMemoryManager copier;
   DwtMemoryManager::CopyProperties props(lims, this->dims);
 
   copier.DEFAULT(strided_3D_copy<Type>)(out, this->data, props);
   return new DwtVolume<Type>(out, lims);
+}
+
+template<typename Type>
+void
+dwt::DwtVolume<Type>::get_sub_volume(dwt::DwtVolume<Type> & sub_vol)
+{
+  DwtMemoryManager copier;
+  DwtMemoryManager::CopyProperties props(sub_vol.get_dims(), this->dims);
+
+  copier.DEFAULT(strided_3D_copy<Type>)(sub_vol.get_data(), this->data, props);
 }
 
 template<typename Type>

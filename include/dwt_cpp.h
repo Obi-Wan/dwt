@@ -9,22 +9,23 @@
 #define DWT_CPP_H_
 
 #include <vector>
+#include <string>
 
-float *
-dwt_haar_f32(float * const vol, const std::vector<unsigned int> & dims,
-    const unsigned int & levels, const bool & direct);
+bool
+dwt_haar(float * const vol, const std::vector<unsigned int> & dims,
+    const unsigned int & levels, const bool & direct, std::string & error_msg);
 
-double *
-dwt_haar_f64(double * const vol, const std::vector<unsigned int> & dims,
-    const unsigned int & levels, const bool & direct);
+bool
+dwt_haar(double * const vol, const std::vector<unsigned int> & dims,
+    const unsigned int & levels, const bool & direct, std::string & error_msg);
 
-void
-dwt_haar_f32(std::vector<float *> & vol, const std::vector<unsigned int> & dims,
-    const unsigned int & levels, const bool & direct, const bool & dispose_old);
+bool
+dwt_haar(std::vector<float *> & vol, const std::vector<unsigned int> & dims,
+    const unsigned int & levels, const bool & direct, std::string & error_msg);
 
-void
-dwt_haar_f64(std::vector<double *> & vol, const std::vector<unsigned int> & dims,
-    const unsigned int & levels, const bool & direct, const bool & dispose_old);
+bool
+dwt_haar(std::vector<double *> & vol, const std::vector<unsigned int> & dims,
+    const unsigned int & levels, const bool & direct, std::string & error_msg);
 
 
 #endif /* DWT_CPP_H_ */

@@ -13,7 +13,7 @@
 
 namespace dwt {
 
-  INLINE size_t
+  size_t
   DwtMultiDimensional::compute_cum_prod(const vector<size_t> & elems) const
   {
     size_t cumprod = 1;

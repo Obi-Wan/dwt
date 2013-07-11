@@ -16,58 +16,71 @@
 
 namespace dwt {
 
+  template<typename Type>
   class DwtTransform {
-    template<typename Type>
+  protected:
+    vector<DwtVolume<Type> *> buffers;
+
     void
     UNOPTIM(direct_dim_0)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
-    template<typename Type>
     void
     UNOPTIM(direct_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
-    template<typename Type>
     void
     UNOPTIM(direct_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
 
-    template<typename Type>
     void
     UNOPTIM(inverse_dim_0)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
-    template<typename Type>
     void
     UNOPTIM(inverse_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
-    template<typename Type>
     void
     UNOPTIM(inverse_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
   public:
     DwtTransform() = default;
+    DwtTransform(const vector<size_t> & dims, const size_t & levels)
+    { this->init(dims, levels); }
     virtual
-    ~DwtTransform() = default;
+    ~DwtTransform()
+    { for (DwtVolume<Type> * buf : this->buffers) { delete buf; } }
 
-    template<typename Type>
     void
-    direct(DwtVolume<Type> & vol, const size_t & levels);
+    init(const vector<size_t> & dims, const size_t & levels);
 
-    template<typename Type>
     void
-    inverse(DwtVolume<Type> & vol, const size_t & levels);
+    direct(DwtVolume<Type> & vol);
+    void
+    inverse(DwtVolume<Type> & vol);
   };
 
 } /* namespace dwt */
 
 template<typename Type>
 void
-dwt::DwtTransform::direct(DwtVolume<Type> & vol, const size_t & levels)
+dwt::DwtTransform<Type>::init(const vector<size_t> & dims, const size_t & levels)
 {
-  vol.check_dims(3, levels);
-
-  const vector<size_t> & dims = vol.get_dims();
-  const size_t & num_dims = dims.size();
   for (size_t level = 0; level < levels; level++)
   {
     const size_t fraction = pow(2, level);
     vector<size_t> lims = dims;
     for (size_t & lim : lims) { lim /= fraction; }
 
-    DwtVolume<Type> * subvol = vol.get_sub_volume(lims);
-    DwtVolume<Type> * temp_subvol = new DwtVolume<Type>(lims);
+    this->buffers.push_back(new DwtVolume<Type>(lims));
+    this->buffers.push_back(new DwtVolume<Type>(lims));
+  }
+}
+
+template<typename Type>
+void
+dwt::DwtTransform<Type>::direct(DwtVolume<Type> & vol)
+{
+  const size_t levels = this->buffers.size() / 2;
+  const vector<size_t> & dims = vol.get_dims();
+  const size_t & num_dims = dims.size();
+  for (size_t level = 0; level < levels; level++)
+  {
+    DwtVolume<Type> * subvol = this->buffers[2 * level];
+    DwtVolume<Type> * temp_subvol = this->buffers[2 * level + 1];
+
+    vol.get_sub_volume(*subvol);
 
     for (size_t dim = 0; dim < num_dims; dim++)
     {
@@ -88,33 +101,28 @@ dwt::DwtTransform::direct(DwtVolume<Type> & vol, const size_t & levels)
           break;
         }
       }
+#pragma omp single
       swap(subvol, temp_subvol);
     }
     vol.set_sub_volume(*subvol);
-
-    delete subvol;
-    delete temp_subvol;
   }
 }
 
 template<typename Type>
 void
-dwt::DwtTransform::inverse(DwtVolume<Type> & vol, const size_t & levels)
+dwt::DwtTransform<Type>::inverse(DwtVolume<Type> & vol)
 {
-  vol.check_dims(3, levels);
-
+  const size_t levels = this->buffers.size() / 2;
   const vector<size_t> & dims = vol.get_dims();
   const size_t & num_dims = dims.size();
   for (size_t level = 0; level < levels; level++)
   {
     const size_t effective_level = levels - level - 1;
 
-    const size_t fraction = pow(2, effective_level);
-    vector<size_t> lims = dims;
-    for (size_t & lim : lims) { lim /= fraction; }
+    DwtVolume<Type> * subvol = this->buffers[2 * effective_level];
+    DwtVolume<Type> * temp_subvol = this->buffers[2 * effective_level + 1];
 
-    DwtVolume<Type> * subvol = vol.get_sub_volume(lims);
-    DwtVolume<Type> * temp_subvol = new DwtVolume<Type>(lims);
+    vol.get_sub_volume(*subvol);
 
     for (size_t dim = 0; dim < num_dims; dim++)
     {
@@ -136,18 +144,16 @@ dwt::DwtTransform::inverse(DwtVolume<Type> & vol, const size_t & levels)
           break;
         }
       }
+#pragma omp single
       swap(subvol, temp_subvol);
     }
     vol.set_sub_volume(*subvol);
-
-    delete subvol;
-    delete temp_subvol;
   }
 }
 
 template<typename Type>
 void
-dwt::DwtTransform::UNOPTIM(direct_dim_0)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
+dwt::DwtTransform<Type>::UNOPTIM(direct_dim_0)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
 {
   const vector<size_t> dims = src.get_dims();
 
@@ -181,7 +187,7 @@ dwt::DwtTransform::UNOPTIM(direct_dim_0)(DwtVolume<Type> & dest, const DwtVolume
 
 template<typename Type>
 void
-dwt::DwtTransform::UNOPTIM(inverse_dim_0)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
+dwt::DwtTransform<Type>::UNOPTIM(inverse_dim_0)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
 {
   const vector<size_t> dims = src.get_dims();
 
@@ -215,7 +221,7 @@ dwt::DwtTransform::UNOPTIM(inverse_dim_0)(DwtVolume<Type> & dest, const DwtVolum
 
 template<typename Type>
 void
-dwt::DwtTransform::UNOPTIM(direct_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
+dwt::DwtTransform<Type>::UNOPTIM(direct_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
 {
   const vector<size_t> dims = src.get_dims();
 
@@ -251,7 +257,7 @@ dwt::DwtTransform::UNOPTIM(direct_dim_1)(DwtVolume<Type> & dest, const DwtVolume
 
 template<typename Type>
 void
-dwt::DwtTransform::UNOPTIM(inverse_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
+dwt::DwtTransform<Type>::UNOPTIM(inverse_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
 {
   const vector<size_t> dims = src.get_dims();
 
@@ -287,7 +293,7 @@ dwt::DwtTransform::UNOPTIM(inverse_dim_1)(DwtVolume<Type> & dest, const DwtVolum
 
 template<typename Type>
 void
-dwt::DwtTransform::UNOPTIM(direct_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
+dwt::DwtTransform<Type>::UNOPTIM(direct_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
 {
   const vector<size_t> dims = src.get_dims();
 
@@ -317,7 +323,7 @@ dwt::DwtTransform::UNOPTIM(direct_dim_2)(DwtVolume<Type> & dest, const DwtVolume
 
 template<typename Type>
 void
-dwt::DwtTransform::UNOPTIM(inverse_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
+dwt::DwtTransform<Type>::UNOPTIM(inverse_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
 {
   const vector<size_t> dims = src.get_dims();
 

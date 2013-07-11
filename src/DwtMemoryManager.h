@@ -11,7 +11,6 @@
 #include "dwt_definitions.h"
 
 #include <cstdlib>
-
 #include <vector>
 
 namespace dwt {
@@ -45,9 +44,6 @@ namespace dwt {
       vector<size_t> src_skip;
       vector<size_t> dest_skip;
 
-      void
-      check_3d() const;
-
       CopyProperties() = default;
       CopyProperties(const CopyProperties & old) = default;
       CopyProperties(const vector<size_t> & dest_dims, const vector<size_t> & src_dims);
@@ -80,8 +76,6 @@ void
 dwt::DwtMemoryManager::UNOPTIM(strided_3D_copy)(
     Type * const dest, const Type * const src, const CopyProperties & props)
 {
-  props.check_3d();
-
   const size_t & length_line = props.dims[0];
   const size_t & num_lines_1 = props.dims[1];
   const size_t & num_lines_2 = props.dims[2];
@@ -115,8 +109,6 @@ template<typename Type>
 INLINE void
 dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(Type * const dest, const Type * const src, const CopyProperties & props)
 {
-  props.check_3d();
-
   const size_t & length_line = props.dims[0];
   const size_t & num_lines_1 = props.dims[1];
   const size_t & num_lines_2 = props.dims[2];
@@ -166,17 +158,17 @@ dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(Type * const dest, const Type
 }
 
 template<typename Type>
-static Type *
-get_memory(size_t numel)
+Type *
+dwt::DwtMemoryManager::get_memory(size_t numel)
 {
-	Type * out = NULL;
-	posix_memalign(out, DWT_MEMORY_ALIGN, numel);
-	return out;
+	void * out = NULL;
+	posix_memalign(&out, DWT_MEMORY_ALIGN, numel * sizeof(Type));
+	return (Type *) out;
 }
 
 template<typename Type>
-static Type *
-dispose_container(dwt::DwtContainer<Type> * container)
+Type *
+dwt::DwtMemoryManager::dispose_container(dwt::DwtContainer<Type> * container)
 {
   Type * out = container->get_data();
 
