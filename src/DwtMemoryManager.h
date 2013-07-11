@@ -76,9 +76,9 @@ void
 dwt::DwtMemoryManager::UNOPTIM(strided_3D_copy)(
     Type * const dest, const Type * const src, const CopyProperties & props)
 {
-  const size_t & length_line = props.dims[0];
-  const size_t & num_lines_1 = props.dims[1];
-  const size_t & num_lines_2 = props.dims[2];
+  const size_t & line_length = props.dims[0];
+  const size_t & tot_lines = props.dims[1];
+  const size_t & tot_areas = props.dims[2];
 
   const size_t & dest_skip_1 = props.dest_skip[0];
   const size_t & dest_skip_2 = props.dest_skip[1];
@@ -87,19 +87,19 @@ dwt::DwtMemoryManager::UNOPTIM(strided_3D_copy)(
   const size_t & src_skip_2 = props.src_skip[1];
 
 #pragma omp for
-  for(size_t line2 = 0; line2 < num_lines_2; line2++)
+  for(size_t num_area = 0; num_area < tot_areas; num_area++)
   {
-    const Type * const src_2 = src + line2 * src_skip_2;
-    Type * const dest_2 = dest + line2 * dest_skip_2;
+    const Type * const src_area = src + num_area * src_skip_2 * dest_skip_1;
+    Type * const dest_area = dest + num_area * dest_skip_2 * dest_skip_1;
 
-    for(size_t line1 = 0; line1 < num_lines_1; line1++)
+    for(size_t num_line = 0; num_line < tot_lines; num_line++)
     {
-      const Type * const src_1 = src_2 + line1 * src_skip_1;
-      Type * const dest_1 = dest_2 + line1 * dest_skip_1;
+      const Type * const src_line = src_area + num_line * src_skip_1;
+      Type * const dest_line = dest_area + num_line * dest_skip_1;
 
-      for(size_t pixel = 0; pixel < length_line; pixel++)
+      for(size_t pixel = 0; pixel < line_length; pixel++)
       {
-        dest_1[pixel] = src_1[pixel];
+        dest_line[pixel] = src_line[pixel];
       }
     }
   }
@@ -109,9 +109,9 @@ template<typename Type>
 INLINE void
 dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(Type * const dest, const Type * const src, const CopyProperties & props)
 {
-  const size_t & length_line = props.dims[0];
-  const size_t & num_lines_1 = props.dims[1];
-  const size_t & num_lines_2 = props.dims[2];
+  const size_t & line_length = props.dims[0];
+  const size_t & tot_lines = props.dims[1];
+  const size_t & tot_areas = props.dims[2];
 
   const size_t & dest_skip_1 = props.dest_skip[0];
   const size_t & dest_skip_2 = props.dest_skip[1];
@@ -124,34 +124,34 @@ dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(Type * const dest, const Type
   const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
   const size_t block = shift * unrolling;
 
-  const size_t unroll_length_line = ROUND_DOWN(length_line, block);
+  const size_t unroll_line_length = ROUND_DOWN(line_length, block);
 
 #pragma omp for
-  for(size_t line2 = 0; line2 < num_lines_2; line2++)
+  for(size_t num_area = 0; num_area < tot_areas; num_area++)
   {
-    const Type * const src_2 = src + line2 * src_skip_2;
-    Type * const dest_2 = dest + line2 * dest_skip_2;
+    const Type * const src_area = src + num_area * src_skip_2 * src_skip_1;
+    Type * const dest_area = dest + num_area * dest_skip_2 * dest_skip_1;
 
-    for(size_t line1 = 0; line1 < num_lines_1; line1++)
+    for(size_t num_line = 0; num_line < tot_lines; num_line++)
     {
-      const Type * const src_1 = src_2 + line1 * src_skip_1;
-      Type * const dest_1 = dest_2 + line1 * dest_skip_1;
+      const Type * const src_line = src_area + num_line * src_skip_1;
+      Type * const dest_line = dest_area + num_line * dest_skip_1;
 
-      for(size_t pixel = 0; pixel < unroll_length_line; pixel += block)
+      for(size_t pixel = 0; pixel < unroll_line_length; pixel += block)
       {
-        COPY_V(dest_1, src_1, pixel, 0);
-        COPY_V(dest_1, src_1, pixel, 1);
-        COPY_V(dest_1, src_1, pixel, 2);
-        COPY_V(dest_1, src_1, pixel, 3);
-        COPY_V(dest_1, src_1, pixel, 4);
-        COPY_V(dest_1, src_1, pixel, 5);
-        COPY_V(dest_1, src_1, pixel, 6);
-        COPY_V(dest_1, src_1, pixel, 7);
+        COPY_V(dest_line, src_line, pixel, 0);
+        COPY_V(dest_line, src_line, pixel, 1);
+        COPY_V(dest_line, src_line, pixel, 2);
+        COPY_V(dest_line, src_line, pixel, 3);
+        COPY_V(dest_line, src_line, pixel, 4);
+        COPY_V(dest_line, src_line, pixel, 5);
+        COPY_V(dest_line, src_line, pixel, 6);
+        COPY_V(dest_line, src_line, pixel, 7);
       }
 
-      for(size_t pixel = unroll_length_line; pixel < length_line; pixel++)
+      for(size_t pixel = unroll_line_length; pixel < line_length; pixel++)
       {
-        dest_1[pixel] = src_1[pixel];
+        dest_line[pixel] = src_line[pixel];
       }
     }
   }
