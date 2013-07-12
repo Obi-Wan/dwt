@@ -80,9 +80,21 @@ typedef unsigned __int64 uint64_t;
 #define SSE3(x) sse3_##x
 #define SSE2(x) sse2_##x
 #define UNOPTIM(x) unoptimized_##x
-#define VECTORIZED(x) vectorized_##x
+//#define VECTORIZED(x) vectorized_##x
 
-#define DEFAULT(x) UNOPTIM(x)
+#if defined(__AVX__)
+# define VECTORIZED(x) AVX(x)
+#elif defined(__SSE3__)
+# define VECTORIZED(x) SSE3(x)
+#else
+# define VECTORIZED(x) SSE2(x)
+#endif
+
+#ifdef USE_VECTORIZATION
+# define DEFAULT(x) VECTORIZED(x)
+#else
+# define DEFAULT(x) UNOPTIM(x)
+#endif
 
 #ifdef __AVX__
 # define DWT_MEMORY_ALIGN 32

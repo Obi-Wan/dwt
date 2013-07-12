@@ -85,6 +85,14 @@ AS_IF([test x$with_matlab != no],
       ],
       [with_matlab=no])
 AM_CONDITIONAL([WITH_MATLAB], [test "x$with_matlab" = xyes])
+
+AC_ARG_ENABLE([vector],
+    AS_HELP_STRING([--disable-vector], [Disable vectorization extensions])
+)
+AS_IF([test "x$enable_vector" != "xno"],
+    [AC_DEFINE([USE_VECTORIZATION], [1], [Define if you want vectorization extensions to be used])]
+    [enable_vector=yes])
+
 #AS_IF([test "x$messaging" != xdebug],
 #      [ AC_SUBST([CFLAGS],["${CFLAGS} -fomit-frame-pointer -fforce-addr"])
 #        AC_SUBST([CXXFLAGS],["${CXXFLAGS} -fomit-frame-pointer -fforce-addr"])
@@ -110,6 +118,8 @@ dnl
 echo ""
 echo "        CFLAGS:          $CFLAGS"
 echo "        CXXFLAGS:        $CXXFLAGS"
+echo ""
+echo "        Vectorization:   $enable_vector"
 echo ""
 echo "        With matlab:     $with_matlab"
 if test x$with_matlab == xyes; then
