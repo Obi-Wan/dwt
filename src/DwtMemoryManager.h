@@ -105,6 +105,9 @@ dwt::DwtMemoryManager::UNOPTIM(strided_3D_copy)(
   }
 }
 
+#define COPY_V(out, in, counter, offset) \
+  *(vVvf *)&out[counter + offset * shift] = *(vVvf *)&in[counter + offset * shift]
+
 template<typename Type>
 INLINE void
 dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(Type * const dest, const Type * const src, const CopyProperties & props)
@@ -156,6 +159,7 @@ dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(Type * const dest, const Type
     }
   }
 }
+#undef COPY_V
 
 template<typename Type>
 Type *
