@@ -12,6 +12,7 @@ AC_CONFIG_FILES([
   Makefile
   include/Makefile
   src/Makefile
+  matlab/Makefile
   examples/Makefile
 ])
 
@@ -48,9 +49,30 @@ AS_IF([test "x$messaging" == xinfo],
   [AC_DEFINE([INFO], [1],
         [Define if you want a build with information])
    ])
+
 AS_IF([test "x$CXX" == xclang++],
   [AC_SUBST([CXXFLAGS],["${CXXFLAGS} -stdlib=libc++"])
    ])
+
+AC_ARG_WITH(matlab,
+  AS_HELP_STRING([--with-matlab=<path>],
+                 [compiles matlab's mex interface]),
+  [],
+  [with_matlab=no])
+MATLAB_PATH=$PATH
+HAVE_MATLAB=no
+AS_IF([test x$with_matlab != no],
+      [MEX_PATH="$with_matlab/bin:$MEX_PATH"]
+      [AC_PATH_PROG([MEX], [mex], [no], [$MEX_PATH])]
+      [AS_IF([test x$MEX != xno],
+             [HAVEMATLAB=yes]
+             [AC_SUBST(MEX)]
+             [MATLAB_ROOT="$with_matlab"]
+             [AC_SUBST(MATLAB_ROOT)],
+             [with_matlab=no])
+      ],
+      [with_matlab=no])
+AM_CONDITIONAL([WITH_MATLAB], [test "x$with_matlab" = xyes])
 #AS_IF([test "x$messaging" != xdebug],
 #      [ AC_SUBST([CFLAGS],["${CFLAGS} -fomit-frame-pointer -fforce-addr"])
 #        AC_SUBST([CXXFLAGS],["${CXXFLAGS} -fomit-frame-pointer -fforce-addr"])
@@ -76,6 +98,11 @@ dnl
 echo ""
 echo "        CFLAGS:          $CFLAGS"
 echo "        CXXFLAGS:        $CXXFLAGS"
+echo ""
+echo "        With matlab:     $with_matlab"
+if test x$with_matlab == xyes; then
+echo "        Matlab path:     $MATLAB_ROOT"
+fi
 echo ""
 echo "        Verbosity level: $messaging"
 

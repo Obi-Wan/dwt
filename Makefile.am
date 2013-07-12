@@ -1,1 +1,1 @@
-SUBDIRS = src include examples
+SUBDIRS = src include matlab examples
