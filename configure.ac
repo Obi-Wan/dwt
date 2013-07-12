@@ -19,7 +19,19 @@ AC_CONFIG_FILES([
 CFLAGS="${CFLAGS=}"
 CXXFLAGS="${CXXFLAGS=}"
 AC_SUBST([CFLAGS],["${CFLAGS} -Wall"])
-AC_SUBST([CXXFLAGS],["${CXXFLAGS} -Wall -std=c++11"])
+AC_SUBST([CXXFLAGS],["${CXXFLAGS} -Wall"])
+
+my_save_cflags="$CFLAGS"
+CFLAGS="-std=c++11"
+AC_MSG_CHECKING([whether CC supports the flag -std=c++11])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+    [AC_MSG_RESULT([yes])]
+    [CPP_11_FLAG=-std=c++11],
+    [AC_MSG_RESULT([no])]
+    [CPP_11_FLAG=-std=c++0x]
+)
+CFLAGS="$my_save_cflags"
+AC_SUBST([CXXFLAGS],["${CXXFLAGS} ${CPP_11_FLAG}"])
 
 ###############################################################################
 # Debug builds
