@@ -41,8 +41,8 @@ namespace dwt {
     struct CopyProperties {
       vector<size_t> dims;
 
-      vector<size_t> src_skip;
-      vector<size_t> dest_skip;
+      vector<size_t> src_pitch;
+      vector<size_t> dest_pitch;
 
       CopyProperties() = default;
       CopyProperties(const CopyProperties & old) = default;
@@ -80,22 +80,22 @@ dwt::DwtMemoryManager::UNOPTIM(strided_3D_copy)(
   const size_t & tot_lines = props.dims[1];
   const size_t & tot_areas = props.dims[2];
 
-  const size_t & dest_skip_1 = props.dest_skip[0];
-  const size_t & dest_skip_2 = props.dest_skip[1];
+  const size_t & dest_pitch_1 = props.dest_pitch[0];
+  const size_t & dest_pitch_2 = props.dest_pitch[1];
 
-  const size_t & src_skip_1 = props.src_skip[0];
-  const size_t & src_skip_2 = props.src_skip[1];
+  const size_t & src_pitch_1 = props.src_pitch[0];
+  const size_t & src_pitch_2 = props.src_pitch[1];
 
 #pragma omp for
   for(size_t num_area = 0; num_area < tot_areas; num_area++)
   {
-    const Type * const src_area = src + num_area * src_skip_2 * src_skip_1;
-    Type * const dest_area = dest + num_area * dest_skip_2 * dest_skip_1;
+    const Type * const src_area = src + num_area * src_pitch_2 * src_pitch_1;
+    Type * const dest_area = dest + num_area * dest_pitch_2 * dest_pitch_1;
 
     for(size_t num_line = 0; num_line < tot_lines; num_line++)
     {
-      const Type * const src_line = src_area + num_line * src_skip_1;
-      Type * const dest_line = dest_area + num_line * dest_skip_1;
+      const Type * const src_line = src_area + num_line * src_pitch_1;
+      Type * const dest_line = dest_area + num_line * dest_pitch_1;
 
       for(size_t pixel = 0; pixel < line_length; pixel++)
       {
@@ -113,11 +113,11 @@ dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(Type * const dest, const Type
   const size_t & tot_lines = props.dims[1];
   const size_t & tot_areas = props.dims[2];
 
-  const size_t & dest_skip_1 = props.dest_skip[0];
-  const size_t & dest_skip_2 = props.dest_skip[1];
+  const size_t & dest_pitch_1 = props.dest_pitch[0];
+  const size_t & dest_pitch_2 = props.dest_pitch[1];
 
-  const size_t & src_skip_1 = props.src_skip[0];
-  const size_t & src_skip_2 = props.src_skip[1];
+  const size_t & src_pitch_1 = props.src_pitch[0];
+  const size_t & src_pitch_2 = props.src_pitch[1];
 
   typedef float vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
   const size_t unrolling = 8;
@@ -129,13 +129,13 @@ dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(Type * const dest, const Type
 #pragma omp for
   for(size_t num_area = 0; num_area < tot_areas; num_area++)
   {
-    const Type * const src_area = src + num_area * src_skip_2 * src_skip_1;
-    Type * const dest_area = dest + num_area * dest_skip_2 * dest_skip_1;
+    const Type * const src_area = src + num_area * src_pitch_2 * src_pitch_1;
+    Type * const dest_area = dest + num_area * dest_pitch_2 * dest_pitch_1;
 
     for(size_t num_line = 0; num_line < tot_lines; num_line++)
     {
-      const Type * const src_line = src_area + num_line * src_skip_1;
-      Type * const dest_line = dest_area + num_line * dest_skip_1;
+      const Type * const src_line = src_area + num_line * src_pitch_1;
+      Type * const dest_line = dest_area + num_line * dest_pitch_1;
 
       for(size_t pixel = 0; pixel < unroll_line_length; pixel += block)
       {

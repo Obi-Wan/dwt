@@ -25,8 +25,8 @@ namespace dwt {
     {
       dims[count] = min(src_dims[count], dest_dims[count]);
     }
-    this->src_skip = vector<size_t>(src_dims.begin(), src_dims.end()-1);
-    this->dest_skip = vector<size_t>(dest_dims.begin(), dest_dims.end()-1);
+    this->src_pitch = vector<size_t>(src_dims.begin(), src_dims.end()-1);
+    this->dest_pitch = vector<size_t>(dest_dims.begin(), dest_dims.end()-1);
   }
 
 } /* namespace dwt */
