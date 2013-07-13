@@ -34,6 +34,29 @@ CFLAGS="$my_save_cflags"
 AC_SUBST([CXXFLAGS],["${CXXFLAGS} ${CPP_11_FLAG}"])
 
 ###############################################################################
+# Definitions
+
+dnl CHECK_MEX_SUFFIX(list-of-suffices, variable-to-set)
+AC_DEFUN([CHECK_MEX_SUFFIX],[
+cat >conftest.cc <<_ACEOF
+extern "C" void mexFunction() {
+}
+_ACEOF
+$CXX -fPIC -c -o conftest.o conftest.cc
+$MEX -cxx -output conftest conftest.o
+$2=""
+for suffix in $1; do
+  if test -f "conftest.$suffix"; then
+    $2="$suffix"
+    rm -f "conftest.$suffix"
+  fi
+done
+rm -f conftest.cc conftest.o
+])
+
+
+
+###############################################################################
 # Debug builds
 AC_ARG_WITH(messaging,
   AS_HELP_STRING([--with-messaging=level],
@@ -77,14 +100,24 @@ AS_IF([test x$with_matlab != no],
       [MEX_PATH="$with_matlab/bin:$MEX_PATH"]
       [AC_PATH_PROG([MEX], [mex], [no], [$MEX_PATH])]
       [AS_IF([test x$MEX != xno],
-             [HAVEMATLAB=yes]
+             [HAVE_MATLAB=yes]
              [AC_SUBST(MEX)]
              [MATLAB_ROOT="$with_matlab"]
-             [AC_SUBST(MATLAB_ROOT)],
-             [with_matlab=no])
+             [AC_SUBST(MATLAB_ROOT)]
+             [with_matlab=yes]
+             [CHECK_MEX_SUFFIX([mexa64 mexglx mexmaci64 mexmaci],[MEXSUFFIX])]
+             [AS_IF([test x$MEXSUFFIX != x],
+                    [AC_SUBST(MEXSUFFIX)],
+                    [with_matlab=no]
+                    )
+             ],
+             [with_matlab=no]
+             )
       ],
-      [with_matlab=no])
-AM_CONDITIONAL([WITH_MATLAB], [test "x$with_matlab" = xyes])
+      [with_matlab=no]
+      )
+AC_SUBST(HAVE_MATLAB)
+#AM_CONDITIONAL([WITH_MATLAB], [test "x$with_matlab" = xyes])
 
 AC_ARG_ENABLE([vector],
     AS_HELP_STRING([--disable-vector], [Disable vectorization extensions])
@@ -124,6 +157,7 @@ echo ""
 echo "        With matlab:     $with_matlab"
 if test x$with_matlab == xyes; then
 echo "        Matlab path:     $MATLAB_ROOT"
+echo "        Mex suffix:      $MEXSUFFIX"
 fi
 echo ""
 echo "        Verbosity level: $messaging"

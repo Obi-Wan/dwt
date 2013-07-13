@@ -1,0 +1,45 @@
+
+matlab=@HAVE_MATLAB@
+
+DEPDIR=.deps
+
+TARGET_MAKE=
+TARGET_INSTALL=
+
+MEXSUFFIX=@MEXSUFFIX@
+MATLAB_MEX=dwt_haar.$(MEXSUFFIX)
+
+ifeq ($(matlab), yes)
+
+MEX=@MATLAB_ROOT@/bin/mex
+
+TARGET_MAKE+=mex
+TARGET_INSTALL+=install-mex
+
+VPATH=..
+
+#CPPFLAGS=@CPPFLAGS@
+#CPPFLAGS+=-I../include
+#LDFLAGS=@LDFLAGS@
+#LDFLAGS+=-L../src/ -ldwt
+
+MEXSUFFIX = @MEXSUFFIX@
+
+mex: $(MATLAB_MEX)
+
+%.$(MEXSUFFIX): FORCE
+	$(MEX) $*.cpp -I../include -ldwt -L../src/
+FORCE:
+
+install-mex: $(MATLAB_MEX)
+	./install-sh -m 755 -d @prefix@/matlab
+endif
+
+all: $(TARGET_MAKE)
+
+install: $(TARGET_INSTALL)
+
+clean:
+	rm -f $(MATLAB_MEX)
+
+ 
