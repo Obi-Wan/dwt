@@ -50,7 +50,6 @@ namespace dwt {
     };
 
     DwtMemoryManager() = default;
-    virtual
     ~DwtMemoryManager() = default;
 
     template<typename Type>

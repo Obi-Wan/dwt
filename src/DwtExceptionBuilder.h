@@ -24,7 +24,6 @@ namespace dwt {
     add_arg(stringstream & stream) { }
   public:
     DwtExceptionBuilder() = default;
-    virtual
     ~DwtExceptionBuilder() = default;
 
     template<class ExceptionType, typename ... Args>
