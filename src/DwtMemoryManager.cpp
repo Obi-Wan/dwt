@@ -9,6 +9,8 @@
 
 #include "DwtExceptionBuilder.h"
 
+#include <cstdlib>
+
 namespace dwt {
 
   DwtMemoryManager::CopyProperties::CopyProperties(const vector<size_t> & dest_dims, const vector<size_t> & src_dims)
@@ -27,6 +29,20 @@ namespace dwt {
     }
     this->src_pitch = vector<size_t>(src_dims.begin(), src_dims.end()-1);
     this->dest_pitch = vector<size_t>(dest_dims.begin(), dest_dims.end()-1);
+  }
+
+  void *
+  DwtMemoryManager::allocate(const size_t & num_bytes)
+  {
+    void * out = NULL;
+    const int ret_val = posix_memalign(&out, DWT_MEMORY_ALIGN, num_bytes);
+    if (ret_val)
+    {
+      DwtExceptionBuilder exc_builder;
+      throw exc_builder.build<DwtWrongArgumentException>(
+                "Allocation of ", num_bytes, " bytes failed!");
+    }
+    return out;
   }
 
 } /* namespace dwt */

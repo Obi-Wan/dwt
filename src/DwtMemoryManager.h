@@ -10,7 +10,6 @@
 
 #include "dwt_definitions.h"
 
-#include <cstdlib>
 #include <vector>
 
 namespace dwt {
@@ -37,6 +36,9 @@ namespace dwt {
   class DwtMemoryManager {
   /** Right now there's no real memory management: only static helper functions
    */
+  private:
+    static void *
+    allocate(const size_t & num_bytes);
   public:
     struct CopyProperties {
       vector<size_t> dims;
@@ -167,9 +169,7 @@ template<typename Type>
 Type *
 dwt::DwtMemoryManager::get_memory(size_t numel)
 {
-	void * out = NULL;
-	posix_memalign(&out, DWT_MEMORY_ALIGN, numel * sizeof(Type));
-	return (Type *) out;
+	return (Type *) DwtMemoryManager::allocate(numel * sizeof(Type));
 }
 
 template<typename Type>
