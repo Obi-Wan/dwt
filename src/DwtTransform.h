@@ -34,6 +34,14 @@ namespace dwt {
     UNOPTIM(inverse_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
     void
     UNOPTIM(inverse_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
+    void
+    VECTORIZED(direct_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
+    void
+    VECTORIZED(direct_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
+    void
+    VECTORIZED(inverse_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
+    void
+    VECTORIZED(inverse_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
   public:
     DwtTransform() = default;
     DwtTransform(const vector<size_t> & dims, const size_t & levels)
@@ -339,6 +347,318 @@ dwt::DwtTransform<Type>::UNOPTIM(inverse_dim_2)(DwtVolume<Type> & dest, const Dw
     Type * const dest_next_area = dest_area + area_length;
 
     for(size_t pixel = 0; pixel < area_length; pixel++)
+    {
+      dest_area[pixel] = (src_area[pixel] + src_half_num_areas[pixel]) * COEFF;
+      dest_next_area[pixel] = (src_area[pixel] - src_half_num_areas[pixel]) * COEFF;
+    }
+  }
+}
+
+//----------------------------------------------------------------------------//
+// Vectorized functions
+//----------------------------------------------------------------------------//
+
+#define LOAD_2V(in0, in1, counter, offset) \
+  const vVvf var_0_##offset = *(vVvf *)&in0[counter + offset * shift]; \
+  const vVvf var_1_##offset = *(vVvf *)&in1[counter + offset * shift]
+
+#define PROCESS(offset) \
+  const vVvf res_0_##offset = (var_0_##offset + var_1_##offset) * coeff; \
+  const vVvf res_1_##offset = (var_0_##offset - var_1_##offset) * coeff
+
+#define STORE_2V(out0, out1, counter, offset) \
+    *(vVvf *)&out0[counter + offset * shift] = res_0_##offset; \
+    *(vVvf *)&out1[counter + offset * shift] = res_1_##offset
+
+template<typename Type>
+void
+dwt::DwtTransform<Type>::VECTORIZED(direct_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
+{
+  typedef typename Coeff<Type>::vVvf vVvf;
+
+  const vector<size_t> dims = src.get_dims();
+
+  const size_t & line_length = dims[0];
+  const size_t & tot_lines = dims[1];
+  const size_t & tot_areas = dims[2];
+
+  const size_t area_length = line_length * tot_lines;
+
+  const size_t unrolling = 8;
+  const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
+  const size_t block = shift * unrolling;
+
+  const size_t unroll_line_length = ROUND_DOWN(line_length, block);
+
+  const vVvf coeff = Coeff<Type>::get();
+
+#pragma omp for
+  for (size_t area_num = 0; area_num < tot_areas; area_num++)
+  {
+    const Type * const src_area = src.get_data() + area_length * area_num;
+    Type * const dest_area = dest.get_data() + area_length * area_num;
+
+    for(size_t line_num = 0; line_num < tot_lines; line_num += 2)
+    {
+      const Type * const src_line = src_area + line_length * line_num;
+      const Type * const src_next_line = src_line + line_length;
+
+      Type * const dest_line = dest_area + line_length * line_num / 2;
+      Type * const dest_half_num_lines = dest_area + line_length * (line_num + tot_lines) / 2;
+
+      for(size_t pixel = 0; pixel < unroll_line_length; pixel++)
+      {
+        LOAD_2V(src_line, src_next_line, pixel, 0);
+        LOAD_2V(src_line, src_next_line, pixel, 1);
+        LOAD_2V(src_line, src_next_line, pixel, 2);
+        LOAD_2V(src_line, src_next_line, pixel, 3);
+
+        PROCESS(0);
+        PROCESS(1);
+        PROCESS(2);
+        PROCESS(3);
+
+        STORE_2V(dest_line, dest_half_num_lines, pixel, 0);
+        STORE_2V(dest_line, dest_half_num_lines, pixel, 1);
+        STORE_2V(dest_line, dest_half_num_lines, pixel, 2);
+        STORE_2V(dest_line, dest_half_num_lines, pixel, 3);
+
+        LOAD_2V(src_line, src_next_line, pixel, 4);
+        LOAD_2V(src_line, src_next_line, pixel, 5);
+        LOAD_2V(src_line, src_next_line, pixel, 6);
+        LOAD_2V(src_line, src_next_line, pixel, 7);
+
+        PROCESS(4);
+        PROCESS(5);
+        PROCESS(6);
+        PROCESS(7);
+
+        STORE_2V(dest_line, dest_half_num_lines, pixel, 4);
+        STORE_2V(dest_line, dest_half_num_lines, pixel, 5);
+        STORE_2V(dest_line, dest_half_num_lines, pixel, 6);
+        STORE_2V(dest_line, dest_half_num_lines, pixel, 7);
+      }
+      for(size_t pixel = unroll_line_length; pixel < line_length; pixel++)
+      {
+        dest_line[pixel] = (src_line[pixel] + src_next_line[pixel]) * COEFF;
+        dest_half_num_lines[pixel] = (src_line[pixel] - src_next_line[pixel]) * COEFF;
+      }
+    }
+  }
+}
+
+template<typename Type>
+void
+dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
+{
+  typedef typename Coeff<Type>::vVvf vVvf;
+
+  const vector<size_t> dims = src.get_dims();
+
+  const size_t & line_length = dims[0];
+  const size_t & tot_lines = dims[1];
+  const size_t & tot_areas = dims[2];
+
+  const size_t area_length = line_length * tot_lines;
+
+  const size_t unrolling = 8;
+  const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
+  const size_t block = shift * unrolling;
+
+  const size_t unroll_line_length = ROUND_DOWN(line_length, block);
+
+  const vVvf coeff = Coeff<Type>::get();
+
+#pragma omp for
+  for (size_t area_num = 0; area_num < tot_areas; area_num++)
+  {
+    const Type * const src_area = src.get_data() + area_length * area_num;
+    Type * const dest_area = dest.get_data() + area_length * area_num;
+
+    for(size_t line_num = 0; line_num < tot_lines; line_num += 2)
+    {
+      const Type * const src_line = src_area + line_length * line_num / 2;
+      const Type * const src_half_num_lines = src_area + line_length * (line_num + tot_lines) / 2;
+
+      Type * const dest_line = dest_area + line_length * line_num;
+      Type * const dest_next_line = dest_line + line_length;
+
+      for(size_t pixel = 0; pixel < unroll_line_length; pixel++)
+      {
+        LOAD_2V(src_line, src_half_num_lines, pixel, 0);
+        LOAD_2V(src_line, src_half_num_lines, pixel, 1);
+        LOAD_2V(src_line, src_half_num_lines, pixel, 2);
+        LOAD_2V(src_line, src_half_num_lines, pixel, 3);
+
+        PROCESS(0);
+        PROCESS(1);
+        PROCESS(2);
+        PROCESS(3);
+
+        STORE_2V(dest_line, dest_next_line, pixel, 0);
+        STORE_2V(dest_line, dest_next_line, pixel, 1);
+        STORE_2V(dest_line, dest_next_line, pixel, 2);
+        STORE_2V(dest_line, dest_next_line, pixel, 3);
+
+        LOAD_2V(src_line, src_half_num_lines, pixel, 4);
+        LOAD_2V(src_line, src_half_num_lines, pixel, 5);
+        LOAD_2V(src_line, src_half_num_lines, pixel, 6);
+        LOAD_2V(src_line, src_half_num_lines, pixel, 7);
+
+        PROCESS(4);
+        PROCESS(5);
+        PROCESS(6);
+        PROCESS(7);
+
+        STORE_2V(dest_line, dest_next_line, pixel, 4);
+        STORE_2V(dest_line, dest_next_line, pixel, 5);
+        STORE_2V(dest_line, dest_next_line, pixel, 6);
+        STORE_2V(dest_line, dest_next_line, pixel, 7);
+      }
+      for(size_t pixel = unroll_line_length; pixel < line_length; pixel++)
+      {
+        dest_line[pixel] = (src_line[pixel] + src_half_num_lines[pixel]) * COEFF;
+        dest_next_line[pixel] = (src_line[pixel] - src_half_num_lines[pixel]) * COEFF;
+      }
+    }
+  }
+}
+
+template<typename Type>
+void
+dwt::DwtTransform<Type>::VECTORIZED(direct_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
+{
+  typedef typename Coeff<Type>::vVvf vVvf;
+
+  const vector<size_t> dims = src.get_dims();
+
+  const size_t & line_length = dims[0];
+  const size_t & tot_lines = dims[1];
+  const size_t & tot_areas = dims[2];
+
+  const size_t area_length = line_length * tot_lines;
+
+  const size_t unrolling = 8;
+  const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
+  const size_t block = shift * unrolling;
+
+  const size_t unroll_area_length = ROUND_DOWN(area_length, block);
+
+  const vVvf coeff = Coeff<Type>::get();
+
+#pragma omp for
+  for (size_t area_num = 0; area_num < tot_areas; area_num += 2)
+  {
+    const Type * const src_area = src.get_data() + area_length * area_num;
+    const Type * const src_next_area = src_area + area_length;
+
+    Type * const dest_area = dest.get_data() + area_length * area_num / 2;
+    Type * const dest_half_num_areas = dest.get_data() + area_length * (area_num + tot_areas) / 2;
+
+    for(size_t pixel = 0; pixel < unroll_area_length; pixel += block)
+    {
+      LOAD_2V(src_area, src_next_area, pixel, 0);
+      LOAD_2V(src_area, src_next_area, pixel, 1);
+      LOAD_2V(src_area, src_next_area, pixel, 2);
+      LOAD_2V(src_area, src_next_area, pixel, 3);
+
+      PROCESS(0);
+      PROCESS(1);
+      PROCESS(2);
+      PROCESS(3);
+
+      STORE_2V(dest_area, dest_half_num_areas, pixel, 0);
+      STORE_2V(dest_area, dest_half_num_areas, pixel, 1);
+      STORE_2V(dest_area, dest_half_num_areas, pixel, 2);
+      STORE_2V(dest_area, dest_half_num_areas, pixel, 3);
+
+      LOAD_2V(src_area, src_next_area, pixel, 4);
+      LOAD_2V(src_area, src_next_area, pixel, 5);
+      LOAD_2V(src_area, src_next_area, pixel, 6);
+      LOAD_2V(src_area, src_next_area, pixel, 7);
+
+      PROCESS(4);
+      PROCESS(5);
+      PROCESS(6);
+      PROCESS(7);
+
+      STORE_2V(dest_area, dest_half_num_areas, pixel, 4);
+      STORE_2V(dest_area, dest_half_num_areas, pixel, 5);
+      STORE_2V(dest_area, dest_half_num_areas, pixel, 6);
+      STORE_2V(dest_area, dest_half_num_areas, pixel, 7);
+    }
+    for(size_t pixel = unroll_area_length; pixel < area_length; pixel++)
+    {
+      dest_area[pixel] = (src_area[pixel] + src_next_area[pixel]) * COEFF;
+      dest_half_num_areas[pixel] = (src_area[pixel] - src_next_area[pixel]) * COEFF;
+    }
+  }
+}
+
+template<typename Type>
+void
+dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
+{
+  typedef typename Coeff<Type>::vVvf vVvf;
+
+  const vector<size_t> dims = src.get_dims();
+
+  const size_t & line_length = dims[0];
+  const size_t & tot_lines = dims[1];
+  const size_t & tot_areas = dims[2];
+
+  const size_t area_length = line_length * tot_lines;
+
+  const size_t unrolling = 8;
+  const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
+  const size_t block = shift * unrolling;
+
+  const size_t unroll_area_length = ROUND_DOWN(area_length, block);
+
+  const vVvf coeff = Coeff<Type>::get();
+
+#pragma omp for
+  for (size_t area_num = 0; area_num < tot_areas; area_num += 2)
+  {
+    const Type * const src_area = src.get_data() + area_length * area_num / 2;
+    const Type * const src_half_num_areas = src.get_data() + area_length * (area_num + tot_areas) / 2;
+
+    Type * const dest_area = dest.get_data() + area_length * area_num;
+    Type * const dest_next_area = dest_area + area_length;
+
+    for(size_t pixel = 0; pixel < unroll_area_length; pixel += block)
+    {
+      LOAD_2V(src_area, src_half_num_areas, pixel, 0);
+      LOAD_2V(src_area, src_half_num_areas, pixel, 1);
+      LOAD_2V(src_area, src_half_num_areas, pixel, 2);
+      LOAD_2V(src_area, src_half_num_areas, pixel, 3);
+
+      PROCESS(0);
+      PROCESS(1);
+      PROCESS(2);
+      PROCESS(3);
+
+      STORE_2V(dest_area, dest_next_area, pixel, 0);
+      STORE_2V(dest_area, dest_next_area, pixel, 1);
+      STORE_2V(dest_area, dest_next_area, pixel, 2);
+      STORE_2V(dest_area, dest_next_area, pixel, 3);
+
+      LOAD_2V(src_area, src_half_num_areas, pixel, 4);
+      LOAD_2V(src_area, src_half_num_areas, pixel, 5);
+      LOAD_2V(src_area, src_half_num_areas, pixel, 6);
+      LOAD_2V(src_area, src_half_num_areas, pixel, 7);
+
+      PROCESS(4);
+      PROCESS(5);
+      PROCESS(6);
+      PROCESS(7);
+
+      STORE_2V(dest_area, dest_next_area, pixel, 4);
+      STORE_2V(dest_area, dest_next_area, pixel, 5);
+      STORE_2V(dest_area, dest_next_area, pixel, 6);
+      STORE_2V(dest_area, dest_next_area, pixel, 7);
+    }
+    for(size_t pixel = unroll_area_length; pixel < area_length; pixel++)
     {
       dest_area[pixel] = (src_area[pixel] + src_half_num_areas[pixel]) * COEFF;
       dest_next_area[pixel] = (src_area[pixel] - src_half_num_areas[pixel]) * COEFF;
