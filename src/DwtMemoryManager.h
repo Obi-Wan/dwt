@@ -24,7 +24,7 @@ namespace dwt {
     DwtContainer() : data(NULL) { }
     DwtContainer(Type * _data) : data(_data) { }
     virtual
-    ~DwtContainer() { delete data; }
+    ~DwtContainer() { if (data) { free(data); } }
 
     const Type *
     get_data() const { return data; }
@@ -64,8 +64,11 @@ namespace dwt {
     get_memory(size_t numel);
 
     template<typename Type>
-    static Type *
+    static void
     dispose_container(DwtContainer<Type> * container);
+    template<typename Type>
+    static Type *
+    get_data_dispose_container(DwtContainer<Type> * container);
   };
 
 } /* namespace dwt */
@@ -170,8 +173,16 @@ dwt::DwtMemoryManager::get_memory(size_t numel)
 }
 
 template<typename Type>
-Type *
+void
 dwt::DwtMemoryManager::dispose_container(dwt::DwtContainer<Type> * container)
+{
+  container->set_data(NULL);
+  delete container;
+}
+
+template<typename Type>
+Type *
+dwt::DwtMemoryManager::get_data_dispose_container(dwt::DwtContainer<Type> * container)
 {
   Type * out = container->get_data();
 
