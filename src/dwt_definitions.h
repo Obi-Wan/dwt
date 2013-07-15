@@ -76,6 +76,10 @@ typedef unsigned __int64 uint64_t;
 
 #define ROUND_DOWN(x, s) ((x) & ~((s)-1))
 
+#if defined(HAVE_OMP)
+# include <omp.h>
+#endif
+
 #define AVX(x) avx_##x
 #define SSE3(x) sse3_##x
 #define SSE2(x) sse2_##x

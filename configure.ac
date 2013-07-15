@@ -126,6 +126,15 @@ AS_IF([test "x$enable_vector" != "xno"],
     [AC_DEFINE([USE_VECTORIZATION], [1], [Define if you want vectorization extensions to be used])]
     [enable_vector=yes])
 
+AC_ARG_ENABLE([openmp],
+    AS_HELP_STRING([--disable-openmp], [Disable OpenMP parallelization support])
+)
+AS_IF([test "x$enable_openmp" != "xno"],
+    [AC_DEFINE([HAVE_OMP], [1], [Define if you want OpenMP parallelization to be used])]
+    [enable_openmp=yes]
+    [AC_SUBST([CXXFLAGS],["${CXXFLAGS} -fopenmp"])]
+    [AC_SUBST([LDFLAGS],["${LDFLAGS} -fopenmp"])] )
+
 #AS_IF([test "x$messaging" != xdebug],
 #      [ AC_SUBST([CFLAGS],["${CFLAGS} -fomit-frame-pointer -fforce-addr"])
 #        AC_SUBST([CXXFLAGS],["${CXXFLAGS} -fomit-frame-pointer -fforce-addr"])
@@ -153,6 +162,8 @@ echo "        CFLAGS:          $CFLAGS"
 echo "        CXXFLAGS:        $CXXFLAGS"
 echo ""
 echo "        Vectorization:   $enable_vector"
+echo ""
+echo "        OpenMP:          $enable_openmp"
 echo ""
 echo "        With matlab:     $with_matlab"
 if test x$with_matlab == xyes; then

@@ -88,8 +88,11 @@ template<typename Type>
 dwt::DwtVolume<Type> *
 dwt::DwtVolume<Type>::get_sub_volume(const vector<size_t> & lims)
 {
+  Type * out;
 #pragma omp single
-  Type * out = DwtMemoryManager::get_memory<Type>(this->compute_cum_prod(lims));
+  {
+    out = DwtMemoryManager::get_memory<Type>(this->compute_cum_prod(lims));
+  }
 
   DwtMemoryManager copier;
   DwtMemoryManager::CopyProperties props(lims, this->dims);
