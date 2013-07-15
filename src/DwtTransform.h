@@ -109,7 +109,6 @@ dwt::DwtTransform<Type>::direct(DwtVolume<Type> & vol)
           break;
         }
       }
-#pragma omp single
       swap(subvol, temp_subvol);
     }
     vol.set_sub_volume(*subvol);
@@ -151,7 +150,6 @@ dwt::DwtTransform<Type>::inverse(DwtVolume<Type> & vol)
           break;
         }
       }
-#pragma omp single
       swap(subvol, temp_subvol);
     }
     vol.set_sub_volume(*subvol);
@@ -162,7 +160,7 @@ template<typename Type>
 void
 dwt::DwtTransform<Type>::UNOPTIM(direct_dim_0)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
 {
-  const vector<size_t> dims = src.get_dims();
+  const vector<size_t> & dims = src.get_dims();
 
   const size_t & line_length = dims[0];
   const size_t & tot_lines = dims[1];
@@ -196,7 +194,7 @@ template<typename Type>
 void
 dwt::DwtTransform<Type>::UNOPTIM(inverse_dim_0)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
 {
-  const vector<size_t> dims = src.get_dims();
+  const vector<size_t> & dims = src.get_dims();
 
   const size_t & line_length = dims[0];
   const size_t & tot_lines = dims[1];
@@ -230,7 +228,7 @@ template<typename Type>
 void
 dwt::DwtTransform<Type>::UNOPTIM(direct_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
 {
-  const vector<size_t> dims = src.get_dims();
+  const vector<size_t> & dims = src.get_dims();
 
   const size_t & line_length = dims[0];
   const size_t & tot_lines = dims[1];
@@ -265,7 +263,7 @@ template<typename Type>
 void
 dwt::DwtTransform<Type>::UNOPTIM(inverse_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
 {
-  const vector<size_t> dims = src.get_dims();
+  const vector<size_t> & dims = src.get_dims();
 
   const size_t & line_length = dims[0];
   const size_t & tot_lines = dims[1];
@@ -300,7 +298,7 @@ template<typename Type>
 void
 dwt::DwtTransform<Type>::UNOPTIM(direct_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
 {
-  const vector<size_t> dims = src.get_dims();
+  const vector<size_t> & dims = src.get_dims();
 
   const size_t & line_length = dims[0];
   const size_t & tot_lines = dims[1];
@@ -329,7 +327,7 @@ template<typename Type>
 void
 dwt::DwtTransform<Type>::UNOPTIM(inverse_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
 {
-  const vector<size_t> dims = src.get_dims();
+  const vector<size_t> & dims = src.get_dims();
 
   const size_t & line_length = dims[0];
   const size_t & tot_lines = dims[1];
