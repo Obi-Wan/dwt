@@ -86,6 +86,8 @@ typedef unsigned __int64 uint64_t;
 #define UNOPTIM(x) unoptimized_##x
 //#define VECTORIZED(x) vectorized_##x
 
+//#define __SSE3__
+
 #if defined(__AVX__)
 # define VECTORIZED(x) AVX(x)
 #elif defined(__SSE3__)
@@ -106,60 +108,6 @@ typedef unsigned __int64 uint64_t;
 # define DWT_MEMORY_ALIGN 32
 #else
 # define DWT_MEMORY_ALIGN 16
-#endif
-
-template<typename Type>
-class Coeff {
-public:
-  typedef Type vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
-
-  static const vVvf get();
-};
-
-#if defined(__AVX__)
-template<>
-class Coeff<float> {
-public:
-  typedef float vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
-
-  static const vVvf get()
-  {
-    return (const vVvf) {COEFF, COEFF, COEFF, COEFF, COEFF, COEFF, COEFF, COEFF};
-  }
-};
-
-template<>
-class Coeff<double> {
-public:
-  typedef double vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
-
-  static const vVvf get()
-  {
-    return (const vVvf) {COEFF, COEFF, COEFF, COEFF};
-  }
-};
-#else
-template<>
-class Coeff<float> {
-public:
-  typedef float vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
-
-  static const vVvf get()
-  {
-    return (const vVvf) {COEFF, COEFF, COEFF, COEFF};
-  }
-};
-
-template<>
-class Coeff<double> {
-public:
-  typedef double vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
-
-  static const vVvf get()
-  {
-    return (const vVvf) {COEFF, COEFF};
-  }
-};
 #endif
 
 using namespace std;

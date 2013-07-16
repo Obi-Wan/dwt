@@ -8,7 +8,7 @@
 #ifndef DWTTRANSFORM_H_
 #define DWTTRANSFORM_H_
 
-#include "dwt_definitions.h"
+#include "simd_operations.h"
 
 #include "DwtVolume.h"
 
@@ -34,10 +34,16 @@ namespace dwt {
     UNOPTIM(inverse_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
     void
     UNOPTIM(inverse_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
+
+    void
+    VECTORIZED(direct_dim_0)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
     void
     VECTORIZED(direct_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
     void
     VECTORIZED(direct_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
+
+    void
+    VECTORIZED(inverse_dim_0)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
     void
     VECTORIZED(inverse_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
     void
@@ -356,17 +362,129 @@ dwt::DwtTransform<Type>::UNOPTIM(inverse_dim_2)(DwtVolume<Type> & dest, const Dw
 // Vectorized functions
 //----------------------------------------------------------------------------//
 
-#define LOAD_2V(in0, in1, counter, offset) \
-  const vVvf var_0_##offset = *(vVvf *)&in0[counter + offset * shift]; \
-  const vVvf var_1_##offset = *(vVvf *)&in1[counter + offset * shift]
+template<typename Type>
+void
+dwt::DwtTransform<Type>::VECTORIZED(direct_dim_0)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
+{
+  typedef typename Coeff<Type>::vVvf vVvf;
 
-#define PROCESS(offset) \
-  const vVvf res_0_##offset = (var_0_##offset + var_1_##offset) * coeff; \
-  const vVvf res_1_##offset = (var_0_##offset - var_1_##offset) * coeff
+  const vector<size_t> dims = src.get_dims();
 
-#define STORE_2V(out0, out1, counter, offset) \
-    *(vVvf *)&out0[counter + offset * shift] = res_0_##offset; \
-    *(vVvf *)&out1[counter + offset * shift] = res_1_##offset
+  const size_t & line_length = dims[0];
+  const size_t & tot_lines = dims[1];
+  const size_t & tot_areas = dims[2];
+
+  const size_t area_length = line_length * tot_lines;
+
+  const size_t unrolling = 8;
+  const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
+  const size_t block = shift * unrolling;
+
+  const size_t unroll_line_length = ROUND_DOWN(line_length, block);
+
+  OpDim0<Type> op(shift);
+
+#pragma omp for
+  for (size_t area_num = 0; area_num < tot_areas; area_num++)
+  {
+    const Type * const src_area = src.get_data() + area_length * area_num;
+    Type * const dest_area = dest.get_data() + area_length * area_num;
+
+    for (size_t line_num = 0; line_num < tot_lines; line_num++)
+    {
+      const Type * const src_line = src_area + line_length * line_num;
+      Type * const dest_line = dest_area + line_length * line_num;
+      Type * const dest_half_line = dest_line + line_length / 2;
+
+      for (size_t src_pixel = 0, dest_pixel = 0;
+          src_pixel < unroll_line_length; src_pixel += block, dest_pixel += (block/2))
+      {
+        LOAD_V(src_line, src_pixel, 0);
+        LOAD_V(src_line, src_pixel, 1);
+        LOAD_V(src_line, src_pixel, 2);
+        LOAD_V(src_line, src_pixel, 3);
+
+        LOAD_V(src_line, src_pixel, 4);
+        LOAD_V(src_line, src_pixel, 5);
+        LOAD_V(src_line, src_pixel, 6);
+        LOAD_V(src_line, src_pixel, 7);
+
+        PROCESS_0_DIR(op, 0, 0, 1);
+        PROCESS_0_DIR(op, 1, 2, 3);
+        PROCESS_0_DIR(op, 2, 4, 5);
+        PROCESS_0_DIR(op, 3, 6, 7);
+
+        STORE_2V(dest_line, dest_half_line, dest_pixel, 0);
+        STORE_2V(dest_line, dest_half_line, dest_pixel, 1);
+        STORE_2V(dest_line, dest_half_line, dest_pixel, 2);
+        STORE_2V(dest_line, dest_half_line, dest_pixel, 3);
+      }
+      for (size_t src_pixel = unroll_line_length, dest_pixel = unroll_line_length;
+          src_pixel < line_length; src_pixel += 2, dest_pixel++)
+      {
+        dest_line[dest_pixel] = (src_line[src_pixel] + src_line[src_pixel+1]) * COEFF;
+        dest_half_line[dest_pixel] = (src_line[src_pixel] - src_line[src_pixel+1]) * COEFF;
+      }
+    }
+  }
+}
+
+template<typename Type>
+void
+dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_0)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
+{
+  typedef typename Coeff<Type>::vVvf vVvf;
+
+  const vector<size_t> dims = src.get_dims();
+
+  const size_t & line_length = dims[0];
+  const size_t & tot_lines = dims[1];
+  const size_t & tot_areas = dims[2];
+
+  const size_t area_length = line_length * tot_lines;
+
+  const size_t unrolling = 8;
+  const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
+  const size_t block = shift * unrolling;
+
+  const size_t unroll_line_length = ROUND_DOWN(line_length / 2, block);
+
+  OpDim0<Type> op(shift);
+
+#pragma omp for
+  for (size_t area_num = 0; area_num < tot_areas; area_num++)
+  {
+    const Type * const src_area = src.get_data() + area_length * area_num;
+    Type * const dest_area = dest.get_data() + area_length * area_num;
+
+    for(size_t line_num = 0; line_num < tot_lines; line_num++)
+    {
+      const Type * const src_line = src_area + line_length * line_num;
+      const Type * const src_half_line = src_line + line_length / 2;
+      Type * const dest_line = dest_area + line_length * line_num;
+
+      for(size_t src_pixel = 0, dest_pixel = 0; src_pixel < unroll_line_length;
+          src_pixel++, dest_pixel += 2)
+      {
+        op.core_inv(&(dest_line[dest_pixel + 2*shift*0]), &(src_line[src_pixel + shift*0]), &(src_half_line[src_pixel + shift*0]));
+        op.core_inv(&(dest_line[dest_pixel + 2*shift*1]), &(src_line[src_pixel + shift*1]), &(src_half_line[src_pixel + shift*1]));
+        op.core_inv(&(dest_line[dest_pixel + 2*shift*2]), &(src_line[src_pixel + shift*2]), &(src_half_line[src_pixel + shift*2]));
+        op.core_inv(&(dest_line[dest_pixel + 2*shift*3]), &(src_line[src_pixel + shift*3]), &(src_half_line[src_pixel + shift*3]));
+
+        op.core_inv(&(dest_line[dest_pixel + 2*shift*4]), &(src_line[src_pixel + shift*4]), &(src_half_line[src_pixel + shift*4]));
+        op.core_inv(&(dest_line[dest_pixel + 2*shift*5]), &(src_line[src_pixel + shift*5]), &(src_half_line[src_pixel + shift*5]));
+        op.core_inv(&(dest_line[dest_pixel + 2*shift*6]), &(src_line[src_pixel + shift*6]), &(src_half_line[src_pixel + shift*6]));
+        op.core_inv(&(dest_line[dest_pixel + 2*shift*7]), &(src_line[src_pixel + shift*7]), &(src_half_line[src_pixel + shift*7]));
+      }
+      for(size_t src_pixel = unroll_line_length, dest_pixel = unroll_line_length * 2;
+          src_pixel < line_length / 2; src_pixel++, dest_pixel += 2)
+      {
+        dest_line[dest_pixel] = (src_line[src_pixel] + src_half_line[src_pixel]) * COEFF;
+        dest_line[dest_pixel+1] = (src_line[src_pixel] - src_half_line[src_pixel]) * COEFF;
+      }
+    }
+  }
+}
 
 template<typename Type>
 void
