@@ -10,7 +10,9 @@
 
 using namespace std;
 
-vector<float> matrix = {
+typedef float TestType;
+
+vector<TestType> matrix = {
     10, 10,  8, 8, 5, 5, 3, 1,
     10, 12, 10, 8, 7, 8, 4, 2,
     12,  8,  7, 6, 5, 4, 3, 1,
@@ -49,7 +51,7 @@ vector<float> matrix = {
 };
 
 void
-print_volume(const float * const vol, const vector<unsigned int> & dims);
+print_volume(const vector<TestType> & vol, const vector<unsigned int> & dims);
 
 int
 main()
@@ -58,9 +60,9 @@ main()
   dims.push_back(8);
   dims.push_back(8);
   dims.push_back(4);
-  vector<float> original_matrix(matrix.begin(), matrix.end());
+  vector<TestType> original_matrix(matrix.begin(), matrix.end());
 
-  print_volume(matrix.data(), dims);
+  print_volume(matrix, dims);
 
   string error_msg_buff;
   if (!dwt_haar(matrix.data(), dims, 2, true, error_msg_buff))
@@ -68,7 +70,7 @@ main()
     printf("Error! %s\n", error_msg_buff.c_str());
   }
 
-  print_volume(matrix.data(), dims);
+  print_volume(matrix, dims);
 
   if (!dwt_haar(matrix.data(), dims, 2, false, error_msg_buff))
   {
@@ -79,11 +81,11 @@ main()
   {
     matrix[count] -= original_matrix[count];
   }
-  print_volume(matrix.data(), dims);
+  print_volume(matrix, dims);
 }
 
 void
-print_volume(const float * const vol, const vector<unsigned int> & dims)
+print_volume(const vector<TestType> & vol, const vector<unsigned int> & dims)
 {
   printf("Printing first layer:\n");
   for(size_t count2 = 0; count2 < dims[2]; count2++)
