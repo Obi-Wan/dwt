@@ -88,7 +88,7 @@ class OpDim0<float> {
 public:
   typedef typename Coeff<float>::vVvf vVvf;
 
-  OpDim0() : coeff(Coeff<float>::get()) { }
+  OpDim0(const size_t & _shift) : coeff(Coeff<float>::get()), shift(_shift) { }
 
 #if defined(__AVX__)
   const vVvf
@@ -116,18 +116,21 @@ public:
   const vVvf
   hadd_dir(const vVvf & in1, const vVvf & in2) const
   {
-    const vVvf shuffled1 = _mm_shuffle_ps(in2, in1, _MM_SHUFFLE(0, 2, 0, 2));
-    const vVvf shuffled2 = _mm_shuffle_ps(in2, in1, _MM_SHUFFLE(1, 3, 1, 3));
+    const vVvf shuffled1 = _mm_shuffle_ps(in1, in2, _MM_SHUFFLE(2, 0, 2, 0));
+    const vVvf shuffled2 = _mm_shuffle_ps(in1, in2, _MM_SHUFFLE(3, 1, 3, 1));
     return _mm_add_ps(shuffled1, shuffled2) * coeff;
   }
   const vVvf
   hsub_dir(const vVvf & in1, const vVvf & in2) const
   {
-    const vVvf shuffled1 = _mm_shuffle_ps(in2, in1, _MM_SHUFFLE(0, 2, 0, 2));
-    const vVvf shuffled2 = _mm_shuffle_ps(in2, in1, _MM_SHUFFLE(1, 3, 1, 3));
+    const vVvf shuffled1 = _mm_shuffle_ps(in1, in2, _MM_SHUFFLE(2, 0, 2, 0));
+    const vVvf shuffled2 = _mm_shuffle_ps(in1, in2, _MM_SHUFFLE(3, 1, 3, 1));
     return _mm_sub_ps(shuffled1, shuffled2) * coeff;
   }
+#endif
 
+#if defined(__AVX__)
+#else
   void
   core_inv(float * const out, const float * const in1, const float * const in2) const
   {
@@ -192,7 +195,22 @@ public:
 
     return _mm_sub_pd(unpacked1, unpacked2) * coeff;
   }
+#endif
 
+#if defined(__AVX__)
+  void
+  core_inv(double * const out, const double * const in1, const double * const in2) const
+  {
+    const vVvf inVec1 = *((const vVvf *)in1);
+    const vVvf inVec2 = *((const vVvf *)in2);
+
+    const vVvf vecAdd = _mm256_add_pd(inVec1, inVec2) * coeff;
+    const vVvf vecSub = _mm256_sub_pd(inVec1, inVec2) * coeff;
+
+    *((vVvf *)out) = _mm256_unpackhi_pd(vecAdd, vecSub);
+    *((vVvf *)(out+shift)) = _mm256_unpacklo_pd(vecAdd, vecSub);
+  }
+#else
   void
   core_inv(double * const out, const double * const in1, const double * const in2) const
   {
