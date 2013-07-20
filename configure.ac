@@ -96,8 +96,8 @@ AC_ARG_WITH(matlab,
   [with_matlab=no])
 MATLAB_PATH=$PATH
 HAVE_MATLAB=no
-AS_IF([test x$with_matlab != no],
-      [MEX_PATH="$with_matlab/bin:$MEX_PATH"]
+AS_IF([test x$with_matlab != xno],
+      [MEX_PATH="$with_matlab/bin:$PATH"]
       [AC_PATH_PROG([MEX], [mex], [no], [$MEX_PATH])]
       [AS_IF([test x$MEX != xno],
              [HAVE_MATLAB=yes]
@@ -117,7 +117,28 @@ AS_IF([test x$with_matlab != no],
       [with_matlab=no]
       )
 AC_SUBST(HAVE_MATLAB)
-#AM_CONDITIONAL([WITH_MATLAB], [test "x$with_matlab" = xyes])
+
+AC_ARG_WITH(octave,
+  AS_HELP_STRING([--with-octave=<path>],
+                 [compiles octave's oct interface]),
+  [],
+  [with_octave=no])
+OCTAVE_PATH=$PATH
+HAVE_OCTAVE=no
+AS_IF([test x$with_octave != xno],
+      [OCT_PATH="$with_octave/bin:$PATH"]
+      [AC_PATH_PROG([MKOCTFILE], [mkoctfile], [no], [$OCT_PATH])]
+      [AS_IF([test x$MKOCTFILE != xno],
+             [HAVE_OCTAVE=yes]
+             [AC_SUBST(MKOCTFILE)]
+             [with_octave=yes],
+             [with_octave=no]
+             )
+      ],
+      [with_octave=no]
+      )
+AC_SUBST(HAVE_OCTAVE)
+#AM_CONDITIONAL([WITH_OCTAVE], [test "x$with_octave" = xyes])
 
 AC_ARG_ENABLE([vector],
     AS_HELP_STRING([--disable-vector], [Disable vectorization extensions])
@@ -164,6 +185,11 @@ echo ""
 echo "        Vectorization:   $enable_vector"
 echo ""
 echo "        OpenMP:          $enable_openmp"
+echo ""
+echo "        With octave:     $with_octave"
+if test x$with_octave == xyes; then
+echo "        Mkoctfile path:  $MKOCTFILE"
+fi
 echo ""
 echo "        With matlab:     $with_matlab"
 if test x$with_matlab == xyes; then

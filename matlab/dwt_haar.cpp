@@ -48,50 +48,11 @@ void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray * prhs[])
   }
   if (nrhs >= 2)
   {
-    switch (mxGetClassID(prhs[1]))
-    {
-    case mxDOUBLE_CLASS:
-    {
-      levels = mxGetScalar(prhs[1]);
-      break;
-    }
-    case mxSINGLE_CLASS:
-    {
-      levels = *((float *)mxGetData(prhs[1]));
-      break;
-    }
-    default:
-    {
-      mexErrMsgIdAndTxt(error_id_wrong_arg, error_msg_second_arg);
-      return;
-    }
-    }
+    levels = (unsigned int)mxGetScalar(prhs[1]);
   }
   if (nrhs >= 3)
   {
-    switch (mxGetClassID(prhs[2]))
-    {
-    case mxLOGICAL_CLASS:
-    {
-      direct = *mxGetLogicals(prhs[2]);
-      break;
-    }
-    case mxDOUBLE_CLASS:
-    {
-      direct = mxGetScalar(prhs[2]);
-      break;
-    }
-    case mxSINGLE_CLASS:
-    {
-      direct = *((float *)mxGetData(prhs[2]));
-      break;
-    }
-    default:
-    {
-      mexErrMsgIdAndTxt(error_id_wrong_arg, error_msg_third_arg);
-      return;
-    }
-    }
+    direct = (bool)mxGetScalar(prhs[2]);
   }
   if (!check_size(dims, prhs[0]))
   {
@@ -212,7 +173,7 @@ check_type(mxClassID & type, const mxArray * const input)
   {
     const mwSize & tot_cells = mxGetNumberOfElements(input);
     type = mxGetClassID(mxGetCell(input, 0));
-    if (type != mxSINGLE_CLASS || type != mxDOUBLE_CLASS)
+    if ((type != mxSINGLE_CLASS) && (type != mxDOUBLE_CLASS))
     {
       mexErrMsgIdAndTxt(error_id_wrong_arg, error_msg_no_float);
       return false;
@@ -223,7 +184,7 @@ check_type(mxClassID & type, const mxArray * const input)
     for (mwIndex num_cell = 1; num_cell < tot_cells; num_cell++)
     {
       type_temp = mxGetClassID(mxGetCell(input, num_cell));
-      if (type_temp != mxSINGLE_CLASS || type_temp != mxDOUBLE_CLASS)
+      if ((type != mxSINGLE_CLASS) && (type != mxDOUBLE_CLASS))
       {
         mexErrMsgIdAndTxt(error_id_wrong_arg, error_msg_no_float);
         return false;
@@ -238,7 +199,7 @@ check_type(mxClassID & type, const mxArray * const input)
   else
   {
     type = mxGetClassID(input);
-    if (type != mxSINGLE_CLASS || type != mxDOUBLE_CLASS)
+    if ((type != mxSINGLE_CLASS) && (type != mxDOUBLE_CLASS))
     {
       mexErrMsgIdAndTxt(error_id_wrong_arg, error_msg_no_float);
       return false;
