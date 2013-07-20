@@ -464,7 +464,7 @@ dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_0)(DwtVolume<Type> & dest, const
       Type * const dest_line = dest_area + line_length * line_num;
 
       for(size_t src_pixel = 0, dest_pixel = 0; src_pixel < unroll_line_length;
-          src_pixel++, dest_pixel += 2)
+          src_pixel += block, dest_pixel += 2*block)
       {
         op.core_inv(&(dest_line[dest_pixel + 2*shift*0]), &(src_line[src_pixel + shift*0]), &(src_half_line[src_pixel + shift*0]));
         op.core_inv(&(dest_line[dest_pixel + 2*shift*1]), &(src_line[src_pixel + shift*1]), &(src_half_line[src_pixel + shift*1]));
@@ -522,7 +522,7 @@ dwt::DwtTransform<Type>::VECTORIZED(direct_dim_1)(DwtVolume<Type> & dest, const 
       Type * const dest_line = dest_area + line_length * line_num / 2;
       Type * const dest_half_num_lines = dest_area + line_length * (line_num + tot_lines) / 2;
 
-      for(size_t pixel = 0; pixel < unroll_line_length; pixel++)
+      for(size_t pixel = 0; pixel < unroll_line_length; pixel += block)
       {
         LOAD_2V(src_line, src_next_line, pixel, 0);
         LOAD_2V(src_line, src_next_line, pixel, 1);
@@ -599,7 +599,7 @@ dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_1)(DwtVolume<Type> & dest, const
       Type * const dest_line = dest_area + line_length * line_num;
       Type * const dest_next_line = dest_line + line_length;
 
-      for(size_t pixel = 0; pixel < unroll_line_length; pixel++)
+      for(size_t pixel = 0; pixel < unroll_line_length; pixel += block)
       {
         LOAD_2V(src_line, src_half_num_lines, pixel, 0);
         LOAD_2V(src_line, src_half_num_lines, pixel, 1);
