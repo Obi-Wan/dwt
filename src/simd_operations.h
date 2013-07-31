@@ -326,25 +326,24 @@ public:
 #ifdef __AVX__
   , abs_mask(_mm256_castsi256_ps(_mm256_set1_epi32(0x7fffffff)))
   , sign_mask(_mm256_castsi256_ps(_mm256_set1_epi32(0x80000000)))
-  , inv_2(_mm256_set1_ps(1/2))
 #else
   , abs_mask(_mm_castsi128_ps(_mm_set1_epi32(0x7fffffff)))
   , sign_mask(_mm_castsi128_ps(_mm_set1_epi32(0x80000000)))
-  , inv_2(_mm_set1_ps(1/2))
 #endif
+  , inv_2(Coeff<float>::get(0.5))
   { }
 
   const vVvf
   operator()(const vVvf & in)
   {
 #ifdef __AVX__
-    const vVvf new_elem = _mm256_and_ps(abs_mask, in) - thr;
-    const vVvf abs_new_elem = (new_elem + _mm256_and_ps(abs_mask, new_elem)) * inv_2;
-    return _mm256_or_ps(abs_new_elem, _mm256_and_ps(sign_mask, in));
+    const vVvf new_elem = _mm256_and_ps(in, abs_mask) - thr;
+    const vVvf abs_new_elem = (new_elem + _mm256_and_ps(new_elem, abs_mask)) * inv_2;
+    return _mm256_or_ps(abs_new_elem, _mm256_and_ps(in, sign_mask));
 #else
-    const vVvf new_elem = _mm_and_ps(abs_mask, in) - thr;
-    const vVvf abs_new_elem = (new_elem + _mm_and_ps(abs_mask, new_elem)) * inv_2;
-    return _mm_or_ps(abs_new_elem, _mm_and_ps(sign_mask, in));
+    const vVvf new_elem = _mm_and_ps(in, abs_mask) - thr;
+    const vVvf abs_new_elem = (new_elem + _mm_and_ps(new_elem, abs_mask)) * inv_2;
+    return _mm_or_ps(abs_new_elem, _mm_and_ps(in, sign_mask));
 #endif
   }
 protected:
@@ -364,25 +363,24 @@ public:
 #ifdef __AVX__
   , abs_mask(_mm256_castsi256_pd(_mm256_set1_epi64x(0x7fffffffffffffffL)))
   , sign_mask(_mm256_castsi256_pd(_mm256_set1_epi64x(0x8000000000000000L)))
-  , inv_2(_mm256_set1_pd(1/2))
 #else
   , abs_mask(_mm_castsi128_pd(_mm_set1_epi64x(0x7fffffffffffffffL)))
   , sign_mask(_mm_castsi128_pd(_mm_set1_epi64x(0x8000000000000000L)))
-  , inv_2(_mm_set1_pd(1/2))
 #endif
+  , inv_2(Coeff<double>::get(0.5))
   { }
 
   const vVvf
   operator()(const vVvf & in)
   {
 #ifdef __AVX__
-    const vVvf new_elem = _mm256_and_pd(abs_mask, in) - thr;
-    const vVvf abs_new_elem = (new_elem + _mm256_and_pd(abs_mask, new_elem)) * inv_2;
-    return _mm256_or_pd(abs_new_elem, _mm256_and_pd(sign_mask, in));
+    const vVvf new_elem = _mm256_and_pd(in, abs_mask) - thr;
+    const vVvf abs_new_elem = (new_elem + _mm256_and_pd(new_elem, abs_mask)) * inv_2;
+    return _mm256_or_pd(abs_new_elem, _mm256_and_pd(in, sign_mask));
 #else
-    const vVvf new_elem = _mm_and_pd(abs_mask, in) - thr;
-    const vVvf abs_new_elem = (new_elem + _mm_and_pd(abs_mask, new_elem)) * inv_2;
-    return _mm_or_pd(abs_new_elem, _mm_and_pd(sign_mask, in));
+    const vVvf new_elem = _mm_and_pd(in, abs_mask) - thr;
+    const vVvf abs_new_elem = (new_elem + _mm_and_pd(new_elem, abs_mask)) * inv_2;
+    return _mm_or_pd(abs_new_elem, _mm_and_pd(in, sign_mask));
 #endif
   }
 protected:

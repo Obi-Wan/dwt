@@ -71,7 +71,6 @@ dwt_haar(std::vector<float *> & vols, const std::vector<unsigned int> & dims,
 #pragma omp parallel
     for(float * vol : vols)
     {
-#pragma omp single
       volume.set_data(vol);
       if (direct) {
         transform.direct(volume);
@@ -99,13 +98,113 @@ dwt_haar(std::vector<double *> & vols, const std::vector<unsigned int> & dims,
 #pragma omp parallel
     for(double * vol : vols)
     {
-#pragma omp single
       volume.set_data(vol);
       if (direct) {
         transform.direct(volume);
       } else {
         transform.inverse(volume);
       }
+    }
+    volume.set_data(NULL);
+    return true;
+  } catch (const dwt::DwtBasicException & e) {
+    error_msg = string(e.what());
+    return false;
+  }
+}
+
+//----------------------------------------------------------------------------//
+// SOFT THRESHOLD
+//----------------------------------------------------------------------------//
+
+
+bool
+dwt_haar_soft_threshold(float * const vol, const std::vector<unsigned int> & dims,
+    const unsigned int & levels, const float & thr, std::string & error_msg)
+{
+  try {
+    vector<size_t> converted_dims(dims.begin(), dims.end());
+    auto volume = new dwt::DwtVolume<float>(vol, converted_dims);
+    volume->check_dims(3, levels);
+    dwt::DwtTransform<float> transform(volume->get_dims(), levels);
+#pragma omp parallel
+    {
+      transform.direct(*volume);
+      transform.DEFAULT(soft_threshold)(*volume, thr);
+      transform.inverse(*volume);
+    }
+    dwt::DwtMemoryManager::dispose_container(volume);
+    return true;
+  } catch (const dwt::DwtBasicException & e) {
+    error_msg = string(e.what());
+    return false;
+  }
+}
+
+bool
+dwt_haar_soft_threshold(double * const vol, const std::vector<unsigned int> & dims,
+    const unsigned int & levels, const double & thr, std::string & error_msg)
+{
+  try {
+    vector<size_t> converted_dims(dims.begin(), dims.end());
+    auto volume = new dwt::DwtVolume<double>(vol, converted_dims);
+    volume->check_dims(3, levels);
+    dwt::DwtTransform<double> transform(volume->get_dims(), levels);
+#pragma omp parallel
+    {
+      transform.direct(*volume);
+      transform.DEFAULT(soft_threshold)(*volume, thr);
+      transform.inverse(*volume);
+    }
+    dwt::DwtMemoryManager::dispose_container(volume);
+    return true;
+  } catch (const dwt::DwtBasicException & e) {
+    error_msg = string(e.what());
+    return false;
+  }
+}
+
+bool
+dwt_haar_soft_threshold(std::vector<float *> & vols, const std::vector<unsigned int> & dims,
+    const unsigned int & levels, const float & thr, std::string & error_msg)
+{
+  try {
+    vector<size_t> converted_dims(dims.begin(), dims.end());
+    dwt::DwtVolume<float> volume(NULL, converted_dims);
+    volume.check_dims(3, levels);
+    dwt::DwtTransform<float> transform(volume.get_dims(), levels);
+#pragma omp parallel
+    for(float * vol : vols)
+    {
+      volume.set_data(vol);
+      transform.direct(volume);
+      transform.DEFAULT(soft_threshold)(volume, thr);
+      transform.inverse(volume);
+    }
+    volume.set_data(NULL);
+    return true;
+  } catch (const dwt::DwtBasicException & e) {
+    error_msg = string(e.what());
+    return false;
+  }
+}
+
+bool
+dwt_haar_soft_threshold(std::vector<double *> & vols, const std::vector<unsigned int> & dims,
+    const unsigned int & levels, const double & thr, std::string & error_msg)
+{
+  try {
+    vector<size_t> converted_dims(dims.begin(), dims.end());
+    dwt::DwtVolume<double> volume(NULL, converted_dims);
+    volume.check_dims(3, levels);
+    dwt::DwtTransform<double> transform(volume.get_dims(), levels);
+#pragma omp parallel
+    for(double * vol : vols)
+    {
+      volume.set_data(vol);
+      transform.direct(volume);
+      transform.DEFAULT(soft_threshold)(volume, thr);
+      transform.inverse(volume);
     }
     volume.set_data(NULL);
     return true;

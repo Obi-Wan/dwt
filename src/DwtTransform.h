@@ -55,12 +55,6 @@ namespace dwt {
     VECTORIZED(inverse_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
     void
     VECTORIZED(inverse_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
-
-    void
-    UNOPTIM(soft_threshold)(DwtVolume<Type> & dest, const Type & thr);
-
-    void
-    VECTORIZED(soft_threshold)(DwtVolume<Type> & dest, const Type & thr);
   public:
     DwtTransform() = default;
     DwtTransform(const vector<size_t> & dims, const size_t & levels)
@@ -76,6 +70,11 @@ namespace dwt {
     direct(DwtVolume<Type> & vol);
     void
     inverse(DwtVolume<Type> & vol);
+
+    void
+    UNOPTIM(soft_threshold)(DwtVolume<Type> & dest, const Type & thr);
+    void
+    VECTORIZED(soft_threshold)(DwtVolume<Type> & dest, const Type & thr);
   };
 
 } /* namespace dwt */
@@ -803,11 +802,34 @@ template<typename Type>
 void
 dwt::DwtTransform<Type>::VECTORIZED(soft_threshold)(DwtVolume<Type> & dest, const Type & thr)
 {
+  typedef typename Coeff<Type>::vVvf vVvf;
+
   const size_t & num_elems = dest.size();
   Type * const data = dest.get_data();
 
+  const size_t unrolling = 8;
+  const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
+  const size_t block = shift * unrolling;
+
+  const size_t unroll_num_elems = ROUND_DOWN(num_elems, block);
+
+  SoftThreshold<Type> func = SoftThreshold<Type>(thr);
+
+#pragma omp for nowait
+  for(size_t count = 0; count < unroll_num_elems; count += block)
+  {
+    *(vVvf *)&data[count + 0*shift] = func(*(vVvf *)&data[count + 0*shift]);
+    *(vVvf *)&data[count + 1*shift] = func(*(vVvf *)&data[count + 1*shift]);
+    *(vVvf *)&data[count + 2*shift] = func(*(vVvf *)&data[count + 2*shift]);
+    *(vVvf *)&data[count + 3*shift] = func(*(vVvf *)&data[count + 3*shift]);
+
+    *(vVvf *)&data[count + 4*shift] = func(*(vVvf *)&data[count + 4*shift]);
+    *(vVvf *)&data[count + 5*shift] = func(*(vVvf *)&data[count + 5*shift]);
+    *(vVvf *)&data[count + 6*shift] = func(*(vVvf *)&data[count + 6*shift]);
+    *(vVvf *)&data[count + 7*shift] = func(*(vVvf *)&data[count + 7*shift]);
+  }
 #pragma omp for
-  for(size_t count = 0; count < num_elems; count++)
+  for(size_t count = unroll_num_elems; count < num_elems; count++)
   {
     const Type & old_elem = data[count];
     const Type new_elem = abs(old_elem) - thr;

@@ -10,9 +10,13 @@ TARGET_MAKE=
 TARGET_INSTALL=
 
 MEXSUFFIX=@MEXSUFFIX@
-MATLAB_MEX=dwt_haar.$(MEXSUFFIX)
+MATLAB_MEX=\
+	dwt_haar.$(MEXSUFFIX)\
+	dwt_haar_soft_threshold.$(MEXSUFFIX)
 
-OCTAVE_MEX=dwt_haar.mex
+OCTAVE_MEX=\
+	dwt_haar.mex\
+	dwt_haar_soft_threshold.mex
 
 LDFLAGS=-ldwt -L../src/
 
