@@ -547,7 +547,7 @@ dwt::DwtTransform<Type>::VECTORIZED(direct_dim_1)(DwtVolume<Type> & dest, const 
 
   const size_t area_length = line_length * tot_lines;
 
-  const size_t unrolling = 8;
+  const size_t unrolling = 4;
   const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
   const size_t block = shift * unrolling;
 
@@ -585,21 +585,6 @@ dwt::DwtTransform<Type>::VECTORIZED(direct_dim_1)(DwtVolume<Type> & dest, const 
         STORE_2V(dest_line, dest_half_num_lines, pixel, 1);
         STORE_2V(dest_line, dest_half_num_lines, pixel, 2);
         STORE_2V(dest_line, dest_half_num_lines, pixel, 3);
-
-        LOAD_2V(src_line, src_next_line, pixel, 4);
-        LOAD_2V(src_line, src_next_line, pixel, 5);
-        LOAD_2V(src_line, src_next_line, pixel, 6);
-        LOAD_2V(src_line, src_next_line, pixel, 7);
-
-        PROCESS(4);
-        PROCESS(5);
-        PROCESS(6);
-        PROCESS(7);
-
-        STORE_2V(dest_line, dest_half_num_lines, pixel, 4);
-        STORE_2V(dest_line, dest_half_num_lines, pixel, 5);
-        STORE_2V(dest_line, dest_half_num_lines, pixel, 6);
-        STORE_2V(dest_line, dest_half_num_lines, pixel, 7);
       }
       for(size_t pixel = unroll_line_length; pixel < line_length; pixel++)
       {
@@ -624,7 +609,7 @@ dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_1)(DwtVolume<Type> & dest, const
 
   const size_t area_length = line_length * tot_lines;
 
-  const size_t unrolling = 8;
+  const size_t unrolling = 4;
   const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
   const size_t block = shift * unrolling;
 
@@ -662,21 +647,6 @@ dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_1)(DwtVolume<Type> & dest, const
         STORE_2V(dest_line, dest_next_line, pixel, 1);
         STORE_2V(dest_line, dest_next_line, pixel, 2);
         STORE_2V(dest_line, dest_next_line, pixel, 3);
-
-        LOAD_2V(src_line, src_half_num_lines, pixel, 4);
-        LOAD_2V(src_line, src_half_num_lines, pixel, 5);
-        LOAD_2V(src_line, src_half_num_lines, pixel, 6);
-        LOAD_2V(src_line, src_half_num_lines, pixel, 7);
-
-        PROCESS(4);
-        PROCESS(5);
-        PROCESS(6);
-        PROCESS(7);
-
-        STORE_2V(dest_line, dest_next_line, pixel, 4);
-        STORE_2V(dest_line, dest_next_line, pixel, 5);
-        STORE_2V(dest_line, dest_next_line, pixel, 6);
-        STORE_2V(dest_line, dest_next_line, pixel, 7);
       }
       for(size_t pixel = unroll_line_length; pixel < line_length; pixel++)
       {
