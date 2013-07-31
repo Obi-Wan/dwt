@@ -155,6 +155,7 @@ AS_IF([test "x$enable_openmp" != "xno"],
     [enable_openmp=yes]
     [AC_SUBST([CXXFLAGS],["${CXXFLAGS} -fopenmp"])]
     [AC_SUBST([LDFLAGS],["${LDFLAGS} -fopenmp"])] )
+AC_SUBST([enable_openmp])
 
 #AS_IF([test "x$messaging" != xdebug],
 #      [ AC_SUBST([CFLAGS],["${CFLAGS} -fomit-frame-pointer -fforce-addr"])

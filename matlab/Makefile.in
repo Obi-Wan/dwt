@@ -14,6 +14,13 @@ MATLAB_MEX=dwt_haar.$(MEXSUFFIX)
 
 OCTAVE_MEX=dwt_haar.mex
 
+LDFLAGS=-ldwt -L../src/
+
+enable_openmp=@enable_openmp@
+ifeq ($(enable_openmp), yes)
+LDFLAGS+=-lgomp
+endif
+
 ifeq ($(matlab), yes)
 
 MEX = @MEX@
@@ -29,7 +36,7 @@ TARGET_INSTALL+=install-mex
 mex: $(MATLAB_MEX)
 
 %.$(MEXSUFFIX): FORCE
-	$(MEX) $*.cpp -I../include -ldwt -L../src/
+	$(MEX) $*.cpp -I../include $(LDFLAGS) -lut
 FORCE:
 
 install-mex: $(MATLAB_MEX)
@@ -45,7 +52,7 @@ TARGET_INSTALL+=install-mex
 mex: $(OCTAVE_MEX)
 
 %.mex: FORCE
-	$(MEX) $*.cpp -I../include -ldwt -L../src/ --mex -lgomp
+	$(MEX) $*.cpp -I../include --mex $(LDFLAGS)
 FORCE:
 
 install-mex: $(OCTAVE_MEX)
