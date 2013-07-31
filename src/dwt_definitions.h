@@ -98,8 +98,6 @@ typedef unsigned __int64 uint64_t;
 # define VECTORIZED(x) SSE2(x)
 #endif
 
-#include <immintrin.h>
-
 #ifdef USE_VECTORIZATION
 # define DEFAULT(x) VECTORIZED(x)
 #else

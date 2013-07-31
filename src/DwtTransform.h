@@ -48,6 +48,12 @@ namespace dwt {
     VECTORIZED(inverse_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
     void
     VECTORIZED(inverse_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src);
+
+    void
+    UNOPTIM(soft_threshold)(DwtVolume<Type> & dest, const Type & thr);
+
+    void
+    VECTORIZED(soft_threshold)(DwtVolume<Type> & dest, const Type & thr);
   public:
     DwtTransform() = default;
     DwtTransform(const vector<size_t> & dims, const size_t & levels)
@@ -355,6 +361,22 @@ dwt::DwtTransform<Type>::UNOPTIM(inverse_dim_2)(DwtVolume<Type> & dest, const Dw
       dest_area[pixel] = (src_area[pixel] + src_half_num_areas[pixel]) * COEFF;
       dest_next_area[pixel] = (src_area[pixel] - src_half_num_areas[pixel]) * COEFF;
     }
+  }
+}
+
+template<typename Type>
+void
+dwt::DwtTransform<Type>::UNOPTIM(soft_threshold)(DwtVolume<Type> & dest, const Type & thr)
+{
+  const size_t & num_elems = dest.size();
+  Type * const data = dest.get_data();
+
+#pragma omp for
+  for(size_t count = 0; count < num_elems; count++)
+  {
+    const Type & old_elem = data[count];
+    const Type new_elem = abs(old_elem) - thr;
+    data[count] = (1 - 2 * (old_elem < 0)) * (new_elem + abs(new_elem)) / 2;
   }
 }
 
@@ -779,6 +801,22 @@ dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_2)(DwtVolume<Type> & dest, const
       dest_area[pixel] = (src_area[pixel] + src_half_num_areas[pixel]) * COEFF;
       dest_next_area[pixel] = (src_area[pixel] - src_half_num_areas[pixel]) * COEFF;
     }
+  }
+}
+
+template<typename Type>
+void
+dwt::DwtTransform<Type>::VECTORIZED(soft_threshold)(DwtVolume<Type> & dest, const Type & thr)
+{
+  const size_t & num_elems = dest.size();
+  Type * const data = dest.get_data();
+
+#pragma omp for
+  for(size_t count = 0; count < num_elems; count++)
+  {
+    const Type & old_elem = data[count];
+    const Type new_elem = abs(old_elem) - thr;
+    data[count] = (1 - 2 * (old_elem < 0)) * (new_elem + abs(new_elem)) / 2;
   }
 }
 

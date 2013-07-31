@@ -10,12 +10,14 @@
 
 #include "dwt_definitions.h"
 
+#include <immintrin.h>
+
 template<typename Type>
 class Coeff {
 public:
   typedef Type vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
 
-  static const vVvf get();
+  static const vVvf get(const Type & coeff = COEFF);
 };
 
 #if defined(__AVX__)
@@ -24,9 +26,9 @@ class Coeff<float> {
 public:
   typedef float vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
 
-  static const vVvf get()
+  static const vVvf get(const float & coeff = COEFF)
   {
-    return (const vVvf) {COEFF, COEFF, COEFF, COEFF, COEFF, COEFF, COEFF, COEFF};
+    return (const vVvf) {coeff, coeff, coeff, coeff, coeff, coeff, coeff, coeff};
   }
 };
 
@@ -35,9 +37,9 @@ class Coeff<double> {
 public:
   typedef double vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
 
-  static const vVvf get()
+  static const vVvf get(const double & coeff = COEFF)
   {
-    return (const vVvf) {COEFF, COEFF, COEFF, COEFF};
+    return (const vVvf) {coeff, coeff, coeff, coeff};
   }
 };
 #else
@@ -46,9 +48,9 @@ class Coeff<float> {
 public:
   typedef float vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
 
-  static const vVvf get()
+  static const vVvf get(const float & coeff = COEFF)
   {
-    return (const vVvf) {COEFF, COEFF, COEFF, COEFF};
+    return (const vVvf) {coeff, coeff, coeff, coeff};
   }
 };
 
@@ -57,9 +59,9 @@ class Coeff<double> {
 public:
   typedef double vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
 
-  static const vVvf get()
+  static const vVvf get(const double & coeff = COEFF)
   {
-    return (const vVvf) {COEFF, COEFF};
+    return (const vVvf) {coeff, coeff};
   }
 };
 #endif
@@ -255,6 +257,102 @@ protected:
 #define STORE_2V(out0, out1, counter, offset) \
     *(vVvf *)&out0[counter + offset * shift] = res_0_##offset; \
     *(vVvf *)&out1[counter + offset * shift] = res_1_##offset
+
+
+
+template<typename Type>
+class SoftThreshold {
+public:
+  typedef typename Coeff<Type>::vVvf vVvf;
+
+  SoftThreshold(const Type & _thr)
+  : thr(Coeff<Type>::get(_thr)), abs_mask(Coeff<Type>::get(0))
+  , sign_mask(Coeff<Type>::get(0))
+  { }
+
+  const vVvf
+  operator()(const vVvf & in);
+protected:
+  const vVvf thr;
+  const vVvf abs_mask;
+  const vVvf sign_mask;
+};
+
+template<>
+class SoftThreshold<float> {
+public:
+  typedef typename Coeff<float>::vVvf vVvf;
+
+  SoftThreshold(const float & _thr)
+  : thr(Coeff<float>::get(_thr))
+#ifdef __AVX__
+  , abs_mask(_mm256_castsi256_ps(_mm256_set1_epi32(0x7fffffff)))
+  , sign_mask(_mm256_castsi256_ps(_mm256_set1_epi32(0x80000000)))
+  , inv_2(_mm256_set1_ps(1/2))
+#else
+  , abs_mask(_mm_castsi128_ps(_mm_set1_epi32(0x7fffffff)))
+  , sign_mask(_mm_castsi128_ps(_mm_set1_epi32(0x80000000)))
+  , inv_2(_mm_set1_ps(1/2))
+#endif
+  { }
+
+  const vVvf
+  operator()(const vVvf & in)
+  {
+#ifdef __AVX__
+    const vVvf new_elem = _mm256_and_ps(abs_mask, in) - thr;
+    const vVvf abs_new_elem = (new_elem + _mm256_and_ps(abs_mask, new_elem)) * inv_2;
+    return _mm256_or_ps(abs_new_elem, _mm256_and_ps(sign_mask, in));
+#else
+    const vVvf new_elem = _mm_and_ps(abs_mask, in) - thr;
+    const vVvf abs_new_elem = (new_elem + _mm_and_ps(abs_mask, new_elem)) * inv_2;
+    return _mm_or_ps(abs_new_elem, _mm_and_ps(sign_mask, in));
+#endif
+  }
+protected:
+  const vVvf thr;
+  const vVvf abs_mask;
+  const vVvf sign_mask;
+  const vVvf inv_2;
+};
+
+template<>
+class SoftThreshold<double> {
+public:
+  typedef typename Coeff<double>::vVvf vVvf;
+
+  SoftThreshold(const double & _thr)
+  : thr(Coeff<double>::get(_thr))
+#ifdef __AVX__
+  , abs_mask(_mm256_castsi256_pd(_mm256_set1_epi64x(0x7fffffffffffffffL)))
+  , sign_mask(_mm256_castsi256_pd(_mm256_set1_epi64x(0x8000000000000000L)))
+  , inv_2(_mm256_set1_pd(1/2))
+#else
+  , abs_mask(_mm_castsi128_pd(_mm_set1_epi64x(0x7fffffffffffffffL)))
+  , sign_mask(_mm_castsi128_pd(_mm_set1_epi64x(0x8000000000000000L)))
+  , inv_2(_mm_set1_pd(1/2))
+#endif
+  { }
+
+  const vVvf
+  operator()(const vVvf & in)
+  {
+#ifdef __AVX__
+    const vVvf new_elem = _mm256_and_pd(abs_mask, in) - thr;
+    const vVvf abs_new_elem = (new_elem + _mm256_and_pd(abs_mask, new_elem)) * inv_2;
+    return _mm256_or_pd(abs_new_elem, _mm256_and_pd(sign_mask, in));
+#else
+    const vVvf new_elem = _mm_and_pd(abs_mask, in) - thr;
+    const vVvf abs_new_elem = (new_elem + _mm_and_pd(abs_mask, new_elem)) * inv_2;
+    return _mm_or_pd(abs_new_elem, _mm_and_pd(sign_mask, in));
+#endif
+  }
+protected:
+  const vVvf thr;
+  const vVvf abs_mask;
+  const vVvf sign_mask;
+  const vVvf inv_2;
+};
 
 
 #endif /* SIMD_OPERATIONS_H_ */
