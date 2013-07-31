@@ -48,12 +48,14 @@ using namespace std;
 #ifdef DEBUG
 # define INLINE
 # define DebugPrintf( x ) do { printf("Debug: "); printf x; } while(0)
+# define DebugPrintfNameAndLine(...) do { fprintf(stderr, "%s, at %u: ", __PRETTY_FUNCTION__, __LINE__); fprintf(stderr, __VA_ARGS__); } while(0)
 # define DebugReportException( x ) printf("Debug: %s", x.what())
 # define DEBUG_DECL( x ) x
 # define DEBUG_CALL( x ) do { x; } while(0)
 #else
 # define INLINE inline
 # define DebugPrintf( x )
+# define DebugPrintfNameAndLine(...)
 # define DebugReportException( x )
 # define DEBUG_DECL( x )
 # define DEBUG_CALL( x )
