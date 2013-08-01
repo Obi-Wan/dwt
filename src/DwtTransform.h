@@ -433,7 +433,7 @@ template<class access>
 void
 dwt::DwtTransform<Type>::VECTORIZED(direct_dim_0)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
 {
-  typedef typename Coeff<Type>::vVvf vVvf;
+  typedef typename SIMDUnrolling<Type>::vVvf vVvf;
 
   const vector<size_t> dims = src.get_dims();
 
@@ -484,7 +484,7 @@ template<class access>
 void
 dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_0)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
 {
-  typedef typename Coeff<Type>::vVvf vVvf;
+  typedef typename SIMDUnrolling<Type>::vVvf vVvf;
 
   const vector<size_t> dims = src.get_dims();
 
@@ -536,7 +536,7 @@ template<typename Type>
 void
 dwt::DwtTransform<Type>::VECTORIZED(direct_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
 {
-  typedef typename Coeff<Type>::vVvf vVvf;
+  typedef typename SIMDUnrolling<Type>::vVvf vVvf;
 
   const vector<size_t> dims = src.get_dims();
 
@@ -598,7 +598,7 @@ template<typename Type>
 void
 dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_1)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
 {
-  typedef typename Coeff<Type>::vVvf vVvf;
+  typedef typename SIMDUnrolling<Type>::vVvf vVvf;
 
   const vector<size_t> dims = src.get_dims();
 
@@ -660,7 +660,7 @@ template<typename Type>
 void
 dwt::DwtTransform<Type>::VECTORIZED(direct_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
 {
-  typedef typename Coeff<Type>::vVvf vVvf;
+  typedef typename SIMDUnrolling<Type>::vVvf vVvf;
 
   const vector<size_t> dims = src.get_dims();
 
@@ -731,7 +731,7 @@ template<typename Type>
 void
 dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_2)(DwtVolume<Type> & dest, const DwtVolume<Type> & src)
 {
-  typedef typename Coeff<Type>::vVvf vVvf;
+  typedef typename SIMDUnrolling<Type>::vVvf vVvf;
 
   const vector<size_t> dims = src.get_dims();
 
@@ -802,16 +802,16 @@ template<typename Type>
 void
 dwt::DwtTransform<Type>::VECTORIZED(soft_threshold)(DwtVolume<Type> & dest, const Type & thr)
 {
-  typedef typename Coeff<Type>::vVvf vVvf;
+  typedef typename SIMDUnrolling<Type>::vVvf vVvf;
 
   const size_t & num_elems = dest.size();
   Type * const data = dest.get_data();
 
-  const size_t unrolling = 8;
-  const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
-  const size_t block = shift * unrolling;
+  const SIMDUnrolling<Type> params(8);
+  const size_t & shift = params.shift;
+  const size_t & block = params.block;
 
-  const size_t unroll_num_elems = ROUND_DOWN(num_elems, block);
+  const size_t unroll_num_elems = params.get_unroll(num_elems);
 
   SoftThreshold<Type> func = SoftThreshold<Type>(thr);
 

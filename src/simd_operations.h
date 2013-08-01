@@ -12,64 +12,98 @@
 
 #include <immintrin.h>
 
+namespace dwt {
+
+template<typename Type>
+class SIMDUnrolling {
+public:
+  const size_t shift;
+  const size_t unrolling;
+  const size_t block;
+
+  typedef Type vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
+
+  SIMDUnrolling(const size_t & _unroll)
+  : shift(DWT_MEMORY_ALIGN / sizeof(Type)), unrolling(_unroll)
+  , block(shift * unrolling)
+  { }
+
+  constexpr size_t
+  get_unroll(const size_t & tot_size) const
+  {
+    return ROUND_DOWN(tot_size, block);
+  }
+
+  void
+  copy(Type * const dest, const Type * const src) const;
+};
+
+#ifdef __AVX__
+template<>
+void
+SIMDUnrolling<float>::copy(float * const dest, const float * const src) const
+{
+  _mm256_store_ps(dest, _mm256_loadu_ps(src));
+}
+
+template<>
+void
+SIMDUnrolling<double>::copy(double * const dest, const double * const src) const
+{
+  _mm256_store_pd(dest, _mm256_loadu_pd(src));
+}
+#else
+template<typename Type>
+void
+SIMDUnrolling<Type>::copy(Type * const dest, const Type * const src) const
+{
+  *(vVvf *)dest = *(vVvf *)src;
+}
+#endif
+
+
 template<typename Type>
 class Coeff {
 public:
-  typedef Type vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
+  typedef typename SIMDUnrolling<Type>::vVvf vVvf;
 
   static const vVvf get(const Type & coeff = COEFF);
 };
 
+template<>
+class Coeff<float> {
+public:
+  typedef typename SIMDUnrolling<float>::vVvf vVvf;
+
+  static const vVvf get(const float & coeff = COEFF)
+  {
 #if defined(__AVX__)
-template<>
-class Coeff<float> {
-public:
-  typedef float vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
-
-  static const vVvf get(const float & coeff = COEFF)
-  {
     return (const vVvf) {coeff, coeff, coeff, coeff, coeff, coeff, coeff, coeff};
-  }
-};
-
-template<>
-class Coeff<double> {
-public:
-  typedef double vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
-
-  static const vVvf get(const double & coeff = COEFF)
-  {
-    return (const vVvf) {coeff, coeff, coeff, coeff};
-  }
-};
 #else
-template<>
-class Coeff<float> {
-public:
-  typedef float vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
-
-  static const vVvf get(const float & coeff = COEFF)
-  {
     return (const vVvf) {coeff, coeff, coeff, coeff};
+#endif
   }
 };
 
 template<>
 class Coeff<double> {
 public:
-  typedef double vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
+  typedef typename SIMDUnrolling<double>::vVvf vVvf;
 
   static const vVvf get(const double & coeff = COEFF)
   {
+#if defined(__AVX__)
+    return (const vVvf) {coeff, coeff, coeff, coeff};
+#else
     return (const vVvf) {coeff, coeff};
+#endif
   }
 };
-#endif
 
 template<typename Type>
 class AccessAligned {
 public:
-  typedef typename Coeff<Type>::vVvf vVvf;
+  typedef typename SIMDUnrolling<Type>::vVvf vVvf;
 
   const vVvf load(const Type * const __restrict in) const
   {
@@ -84,7 +118,7 @@ public:
 template<typename Type>
 class AccessUnaligned {
 public:
-  typedef typename Coeff<Type>::vVvf vVvf;
+  typedef typename SIMDUnrolling<Type>::vVvf vVvf;
 
   const vVvf load(const Type * const __restrict in) const;
   void store(Type * const __restrict out, const vVvf & in) const;
@@ -93,7 +127,7 @@ public:
 template<>
 class AccessUnaligned<double> {
 public:
-  typedef typename Coeff<double>::vVvf vVvf;
+  typedef typename SIMDUnrolling<double>::vVvf vVvf;
 
   const vVvf load(const double * const __restrict in) const
   {
@@ -116,7 +150,7 @@ public:
 template<>
 class AccessUnaligned<float> {
 public:
-  typedef typename Coeff<float>::vVvf vVvf;
+  typedef typename SIMDUnrolling<float>::vVvf vVvf;
 
   const vVvf load(const float * const __restrict in) const
   {
@@ -139,7 +173,7 @@ public:
 template<class access, typename Type>
 class OpDim0 {
 public:
-  typedef typename Coeff<Type>::vVvf vVvf;
+  typedef typename SIMDUnrolling<Type>::vVvf vVvf;
 
   OpDim0(const size_t & _shift) : coeff(Coeff<Type>::get()), shift(_shift), accessor() { }
 
@@ -158,7 +192,7 @@ protected:
 template<class access>
 class OpDim0<access, float> {
 public:
-  typedef typename Coeff<float>::vVvf vVvf;
+  typedef typename SIMDUnrolling<float>::vVvf vVvf;
 
   OpDim0(const size_t & _shift) : coeff(Coeff<float>::get()), shift(_shift), accessor() { }
 
@@ -195,8 +229,11 @@ public:
     const vVvf vecAdd = _mm256_add_ps(inVec1, inVec2) * coeff;
     const vVvf vecSub = _mm256_sub_ps(inVec1, inVec2) * coeff;
 
-    *((vVvf *)out) = _mm256_unpacklo_ps(vecAdd, vecSub);
-    *((vVvf *)(out+shift)) = _mm256_unpackhi_ps(vecAdd, vecSub);
+    const vVvf shuffle1 = _mm256_permute2f128_ps(vecAdd, vecSub, 0x13);
+    const vVvf shuffle2 = _mm256_permute2f128_ps(vecAdd, vecSub, 0x02);
+
+    *((vVvf *)out) = _mm256_unpacklo_ps(shuffle1, shuffle2);
+    *((vVvf *)(out+shift)) = _mm256_unpackhi_ps(shuffle1, shuffle2);
 #else
     const vVvf vecAdd = _mm_add_ps(inVec1, inVec2) * coeff;
     const vVvf vecSub = _mm_sub_ps(inVec1, inVec2) * coeff;
@@ -215,7 +252,7 @@ protected:
 template<class access>
 class OpDim0<access, double> {
 public:
-  typedef typename Coeff<double>::vVvf vVvf;
+  typedef typename SIMDUnrolling<double>::vVvf vVvf;
 
   OpDim0(const size_t & _shift) : coeff(Coeff<double>::get()), shift(_shift), accessor() { }
 
@@ -252,8 +289,11 @@ public:
     const vVvf vecAdd = _mm256_add_pd(inVec1, inVec2) * coeff;
     const vVvf vecSub = _mm256_sub_pd(inVec1, inVec2) * coeff;
 
-    *((vVvf *)out) = _mm256_unpacklo_pd(vecAdd, vecSub);
-    *((vVvf *)(out+shift)) = _mm256_unpackhi_pd(vecAdd, vecSub);
+    const vVvf shuffle1 = _mm256_permute2f128_pd(vecAdd, vecSub, 0x13);
+    const vVvf shuffle2 = _mm256_permute2f128_pd(vecAdd, vecSub, 0x02);
+
+    *((vVvf *)out) = _mm256_unpacklo_pd(shuffle1, shuffle2);
+    *((vVvf *)(out+shift)) = _mm256_unpackhi_pd(shuffle1, shuffle2);
 #else
     const vVvf vecAdd = _mm_add_pd(inVec1, inVec2) * coeff;
     const vVvf vecSub = _mm_sub_pd(inVec1, inVec2) * coeff;
@@ -301,7 +341,7 @@ protected:
 template<typename Type>
 class SoftThreshold {
 public:
-  typedef typename Coeff<Type>::vVvf vVvf;
+  typedef typename SIMDUnrolling<Type>::vVvf vVvf;
 
   SoftThreshold(const Type & _thr)
   : thr(Coeff<Type>::get(_thr)), abs_mask(Coeff<Type>::get(0))
@@ -319,7 +359,7 @@ protected:
 template<>
 class SoftThreshold<float> {
 public:
-  typedef typename Coeff<float>::vVvf vVvf;
+  typedef typename SIMDUnrolling<float>::vVvf vVvf;
 
   SoftThreshold(const float & _thr)
   : thr(Coeff<float>::get(_thr))
@@ -356,7 +396,7 @@ protected:
 template<>
 class SoftThreshold<double> {
 public:
-  typedef typename Coeff<double>::vVvf vVvf;
+  typedef typename SIMDUnrolling<double>::vVvf vVvf;
 
   SoftThreshold(const double & _thr)
   : thr(Coeff<double>::get(_thr))
@@ -390,5 +430,6 @@ protected:
   const vVvf inv_2;
 };
 
+}  // namespace dwt
 
 #endif /* SIMD_OPERATIONS_H_ */
