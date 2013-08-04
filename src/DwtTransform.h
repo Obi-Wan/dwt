@@ -437,11 +437,13 @@ dwt::DwtTransform<Type>::VECTORIZED(direct_dim_0)(DwtVolume<Type> & dest, const 
 
   const vector<size_t> dims = src.get_dims();
 
+  const size_t & pitch = src.get_pitch();
+
   const size_t & line_length = dims[0];
   const size_t & tot_lines = dims[1];
   const size_t & tot_areas = dims[2];
 
-  const size_t area_length = line_length * tot_lines;
+  const size_t area_length = pitch * tot_lines;
 
   const size_t unrolling = 2;
   const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
@@ -459,8 +461,8 @@ dwt::DwtTransform<Type>::VECTORIZED(direct_dim_0)(DwtVolume<Type> & dest, const 
 
     for (size_t line_num = 0; line_num < tot_lines; line_num++)
     {
-      const Type * const src_line = src_area + line_length * line_num;
-      Type * const dest_line = dest_area + line_length * line_num;
+      const Type * const src_line = src_area + pitch * line_num;
+      Type * const dest_line = dest_area + pitch * line_num;
       Type * const dest_half_line = dest_line + line_length / 2;
 
       for (size_t src_pixel = 0, dest_pixel = 0;
@@ -488,11 +490,13 @@ dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_0)(DwtVolume<Type> & dest, const
 
   const vector<size_t> dims = src.get_dims();
 
+  const size_t & pitch = src.get_pitch();
+
   const size_t & line_length = dims[0];
   const size_t & tot_lines = dims[1];
   const size_t & tot_areas = dims[2];
 
-  const size_t area_length = line_length * tot_lines;
+  const size_t area_length = pitch * tot_lines;
 
   const size_t unrolling = 2;
   const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
@@ -510,9 +514,9 @@ dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_0)(DwtVolume<Type> & dest, const
 
     for(size_t line_num = 0; line_num < tot_lines; line_num++)
     {
-      const Type * const src_line = src_area + line_length * line_num;
+      const Type * const src_line = src_area + pitch * line_num;
       const Type * const src_half_line = src_line + line_length / 2;
-      Type * const dest_line = dest_area + line_length * line_num;
+      Type * const dest_line = dest_area + pitch * line_num;
 
       for(size_t src_pixel = 0, dest_pixel = 0; src_pixel < unroll_line_length;
           src_pixel += block, dest_pixel += 2*block)
@@ -540,11 +544,13 @@ dwt::DwtTransform<Type>::VECTORIZED(direct_dim_1)(DwtVolume<Type> & dest, const 
 
   const vector<size_t> dims = src.get_dims();
 
+  const size_t & pitch = src.get_pitch();
+
   const size_t & line_length = dims[0];
   const size_t & tot_lines = dims[1];
   const size_t & tot_areas = dims[2];
 
-  const size_t area_length = line_length * tot_lines;
+  const size_t area_length = pitch * tot_lines;
 
   const size_t unrolling = 4;
   const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
@@ -562,11 +568,11 @@ dwt::DwtTransform<Type>::VECTORIZED(direct_dim_1)(DwtVolume<Type> & dest, const 
 
     for(size_t line_num = 0; line_num < tot_lines; line_num += 2)
     {
-      const Type * const src_line = src_area + line_length * line_num;
-      const Type * const src_next_line = src_line + line_length;
+      const Type * const src_line = src_area + pitch * line_num;
+      const Type * const src_next_line = src_line + pitch;
 
-      Type * const dest_line = dest_area + line_length * line_num / 2;
-      Type * const dest_half_num_lines = dest_area + line_length * (line_num + tot_lines) / 2;
+      Type * const dest_line = dest_area + pitch * line_num / 2;
+      Type * const dest_half_num_lines = dest_area + pitch * (line_num + tot_lines) / 2;
 
       for(size_t pixel = 0; pixel < unroll_line_length; pixel += block)
       {
@@ -602,11 +608,13 @@ dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_1)(DwtVolume<Type> & dest, const
 
   const vector<size_t> dims = src.get_dims();
 
+  const size_t & pitch = src.get_pitch();
+
   const size_t & line_length = dims[0];
   const size_t & tot_lines = dims[1];
   const size_t & tot_areas = dims[2];
 
-  const size_t area_length = line_length * tot_lines;
+  const size_t area_length = pitch * tot_lines;
 
   const size_t unrolling = 4;
   const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
@@ -624,11 +632,11 @@ dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_1)(DwtVolume<Type> & dest, const
 
     for(size_t line_num = 0; line_num < tot_lines; line_num += 2)
     {
-      const Type * const src_line = src_area + line_length * line_num / 2;
-      const Type * const src_half_num_lines = src_area + line_length * (line_num + tot_lines) / 2;
+      const Type * const src_line = src_area + pitch * line_num / 2;
+      const Type * const src_half_num_lines = src_area + pitch * (line_num + tot_lines) / 2;
 
-      Type * const dest_line = dest_area + line_length * line_num;
-      Type * const dest_next_line = dest_line + line_length;
+      Type * const dest_line = dest_area + pitch * line_num;
+      Type * const dest_next_line = dest_line + pitch;
 
       for(size_t pixel = 0; pixel < unroll_line_length; pixel += block)
       {
@@ -664,17 +672,18 @@ dwt::DwtTransform<Type>::VECTORIZED(direct_dim_2)(DwtVolume<Type> & dest, const 
 
   const vector<size_t> dims = src.get_dims();
 
-  const size_t & line_length = dims[0];
+  const size_t & pitch = src.get_pitch();
+
   const size_t & tot_lines = dims[1];
   const size_t & tot_areas = dims[2];
 
-  const size_t area_length = line_length * tot_lines;
+  const size_t area_length = pitch * tot_lines;
 
-  const size_t unrolling = 8;
-  const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
-  const size_t block = shift * unrolling;
+  const SIMDUnrolling<Type> params(8);
+  const size_t & shift = params.shift;
+  const size_t & block = params.block;
 
-  const size_t unroll_area_length = ROUND_DOWN(area_length, block);
+  const size_t unroll_area_length = params.get_unroll(area_length);
 
   const vVvf coeff = Coeff<Type>::get();
 
@@ -735,17 +744,18 @@ dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_2)(DwtVolume<Type> & dest, const
 
   const vector<size_t> dims = src.get_dims();
 
-  const size_t & line_length = dims[0];
+  const size_t & pitch = src.get_pitch();
+
   const size_t & tot_lines = dims[1];
   const size_t & tot_areas = dims[2];
 
-  const size_t area_length = line_length * tot_lines;
+  const size_t area_length = pitch * tot_lines;
 
-  const size_t unrolling = 8;
-  const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
-  const size_t block = shift * unrolling;
+  const SIMDUnrolling<Type> params(8);
+  const size_t & shift = params.shift;
+  const size_t & block = params.block;
 
-  const size_t unroll_area_length = ROUND_DOWN(area_length, block);
+  const size_t unroll_area_length = params.get_unroll(area_length);
 
   const vVvf coeff = Coeff<Type>::get();
 

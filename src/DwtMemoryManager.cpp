@@ -13,7 +13,9 @@
 
 namespace dwt {
 
-  DwtMemoryManager::CopyProperties::CopyProperties(const vector<size_t> & dest_dims, const vector<size_t> & src_dims)
+  DwtMemoryManager::CopyProperties::CopyProperties(
+      const vector<size_t> & dest_dims, const size_t & pitch_dest,
+      const vector<size_t> & src_dims, const size_t & pitch_src)
   {
     DwtExceptionBuilder exc_builder;
     const size_t & num_dims = src_dims.size();
@@ -27,8 +29,10 @@ namespace dwt {
     {
       dims[count] = min(src_dims[count], dest_dims[count]);
     }
-    this->src_pitch = vector<size_t>(src_dims.begin(), src_dims.end()-1);
-    this->dest_pitch = vector<size_t>(dest_dims.begin(), dest_dims.end()-1);
+    this->src_skip.push_back(pitch_src);
+    this->src_skip.insert(src_skip.end(), src_dims.begin()+1, src_dims.end()-1);
+    this->dest_skip.push_back(pitch_dest);
+    this->dest_skip.insert(dest_skip.end(), dest_dims.begin()+1, dest_dims.end()-1);
   }
 
   void *

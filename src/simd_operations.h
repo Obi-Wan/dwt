@@ -263,19 +263,23 @@ public:
     const vVvf inVec2 = *((const vVvf *)(in+shift));
 
 #if defined(__AVX__)
-    *((vVvf *)out1) = _mm256_hadd_pd(inVec1, inVec2) * coeff;
-    const vVvf outVec2 = _mm256_hsub_pd(inVec1, inVec2) * coeff;
+    const vVvf shuffle1 = _mm256_permute2f128_pd(inVec1, inVec2, 0x20);
+    const vVvf shuffle2 = _mm256_permute2f128_pd(inVec1, inVec2, 0x31);
+
+    const vVvf outVec1 = _mm256_hadd_pd(shuffle1, shuffle2) * coeff;
+    const vVvf outVec2 = _mm256_hsub_pd(shuffle1, shuffle2) * coeff;
 #elif defined(__SSE3__)
-    *((vVvf *)out1) = _mm_hadd_pd(inVec1, inVec2) * coeff;
+    const vVvf outVec1 = _mm_hadd_pd(inVec1, inVec2) * coeff;
     const vVvf outVec2 = _mm_hsub_pd(inVec1, inVec2) * coeff;
 #else
     const vVvf unpacked1 = _mm_unpacklo_pd(inVec1, inVec2);
     const vVvf unpacked2 = _mm_unpackhi_pd(inVec1, inVec2);
 
-    *((vVvf *)out1) = _mm_add_pd(unpacked1, unpacked2) * coeff;
+    const vVvf outVec1 = _mm_add_pd(unpacked1, unpacked2) * coeff;
     const vVvf outVec2 = _mm_sub_pd(unpacked1, unpacked2) * coeff;
 #endif
 
+    *((vVvf *)out1) = outVec1;
     accessor.store(out2, outVec2);
   }
 
@@ -289,18 +293,21 @@ public:
     const vVvf vecAdd = _mm256_add_pd(inVec1, inVec2) * coeff;
     const vVvf vecSub = _mm256_sub_pd(inVec1, inVec2) * coeff;
 
-    const vVvf shuffle1 = _mm256_permute2f128_pd(vecAdd, vecSub, 0x13);
-    const vVvf shuffle2 = _mm256_permute2f128_pd(vecAdd, vecSub, 0x02);
+    const vVvf unpacked1 = _mm256_unpacklo_pd(vecAdd, vecSub);
+    const vVvf unpacked2 = _mm256_unpackhi_pd(vecAdd, vecSub);
 
-    *((vVvf *)out) = _mm256_unpacklo_pd(shuffle1, shuffle2);
-    *((vVvf *)(out+shift)) = _mm256_unpackhi_pd(shuffle1, shuffle2);
+    const vVvf outVec1 = _mm256_permute2f128_pd(unpacked1, unpacked2, 0x20);
+    const vVvf outVec2 = _mm256_permute2f128_pd(unpacked1, unpacked2, 0x31);
 #else
     const vVvf vecAdd = _mm_add_pd(inVec1, inVec2) * coeff;
     const vVvf vecSub = _mm_sub_pd(inVec1, inVec2) * coeff;
 
-    *((vVvf *)out) = _mm_unpacklo_pd(vecAdd, vecSub);
-    *((vVvf *)(out+shift)) = _mm_unpackhi_pd(vecAdd, vecSub);
+    const vVvf outVec1 = _mm_unpacklo_pd(vecAdd, vecSub);
+    const vVvf outVec2 = _mm_unpackhi_pd(vecAdd, vecSub);
 #endif
+
+    *((vVvf *)out) = outVec1;
+    *((vVvf *)(out+shift)) = outVec2;
   }
 
 protected:
