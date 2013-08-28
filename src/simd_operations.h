@@ -235,8 +235,8 @@ public:
     const vVvf inVec2 = *((const vVvf *)(in+shift));
 
 #if defined(__AVX__)
-    const vVvf shuffle1 = _mm256_permute2f128_pd(inVec1, inVec2, 0x20);
-    const vVvf shuffle2 = _mm256_permute2f128_pd(inVec1, inVec2, 0x31);
+    const vVvf shuffle1 = _mm256_permute2f128_ps(inVec1, inVec2, 0x20);
+    const vVvf shuffle2 = _mm256_permute2f128_ps(inVec1, inVec2, 0x31);
 
     const vVvf outVec1 = _mm256_hadd_ps(shuffle1, shuffle2) * coeff;
     const vVvf outVec2 = _mm256_hsub_ps(shuffle1, shuffle2) * coeff;
