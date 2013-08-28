@@ -825,29 +825,34 @@ dwt::DwtTransform<Type>::VECTORIZED(soft_threshold)(DwtVolume<Type> & dest, cons
   const size_t & num_elems = dest.size();
   Type * const data = dest.get_data();
 
-  const SIMDUnrolling<Type> params(8);
-  const size_t & shift = params.shift;
-  const size_t & block = params.block;
+  const SIMDUnrolling<Type> params_8(8);
+  const SIMDUnrolling<Type> params_1(1);
 
-  const size_t unroll_num_elems = params.get_unroll(num_elems);
+  const size_t unroll_num_elems = params_8.get_unroll(num_elems);
 
   SoftThreshold<Type> func = SoftThreshold<Type>(thr);
 
 #pragma omp for nowait
-  for(size_t count = 0; count < unroll_num_elems; count += block)
+  for(size_t count = 0; count < params_8.get_unroll(num_elems); count += params_8.block)
   {
-    *(vVvf *)&data[count + 0*shift] = func(*(vVvf *)&data[count + 0*shift]);
-    *(vVvf *)&data[count + 1*shift] = func(*(vVvf *)&data[count + 1*shift]);
-    *(vVvf *)&data[count + 2*shift] = func(*(vVvf *)&data[count + 2*shift]);
-    *(vVvf *)&data[count + 3*shift] = func(*(vVvf *)&data[count + 3*shift]);
+    *(vVvf *)&data[count + 0*params_8.shift] = func(*(vVvf *)&data[count + 0*params_8.shift]);
+    *(vVvf *)&data[count + 1*params_8.shift] = func(*(vVvf *)&data[count + 1*params_8.shift]);
+    *(vVvf *)&data[count + 2*params_8.shift] = func(*(vVvf *)&data[count + 2*params_8.shift]);
+    *(vVvf *)&data[count + 3*params_8.shift] = func(*(vVvf *)&data[count + 3*params_8.shift]);
 
-    *(vVvf *)&data[count + 4*shift] = func(*(vVvf *)&data[count + 4*shift]);
-    *(vVvf *)&data[count + 5*shift] = func(*(vVvf *)&data[count + 5*shift]);
-    *(vVvf *)&data[count + 6*shift] = func(*(vVvf *)&data[count + 6*shift]);
-    *(vVvf *)&data[count + 7*shift] = func(*(vVvf *)&data[count + 7*shift]);
+    *(vVvf *)&data[count + 4*params_8.shift] = func(*(vVvf *)&data[count + 4*params_8.shift]);
+    *(vVvf *)&data[count + 5*params_8.shift] = func(*(vVvf *)&data[count + 5*params_8.shift]);
+    *(vVvf *)&data[count + 6*params_8.shift] = func(*(vVvf *)&data[count + 6*params_8.shift]);
+    *(vVvf *)&data[count + 7*params_8.shift] = func(*(vVvf *)&data[count + 7*params_8.shift]);
+  }
+#pragma omp for nowait
+  for(size_t count = params_8.get_unroll(num_elems);
+      count < params_1.get_unroll(num_elems); count += params_1.block)
+  {
+    *(vVvf *)&data[count] = func(*(vVvf *)&data[count]);
   }
 #pragma omp for
-  for(size_t count = unroll_num_elems; count < num_elems; count++)
+  for(size_t count = params_1.get_unroll(num_elems); count < num_elems; count++)
   {
     const Type & old_elem = data[count];
     const Type new_elem = abs(old_elem) - thr;
