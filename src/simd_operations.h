@@ -116,6 +116,38 @@ public:
 };
 
 template<typename Type>
+class AccessStreamed : public AccessAligned<Type> {
+public:
+  typedef typename AccessAligned<Type>::vVvf vVvf;
+
+  void store(Type * const __restrict out, const vVvf & in) const;
+};
+
+template<>
+inline void
+AccessStreamed<float>::store(float * const __restrict out,
+    const AccessStreamed<float>::vVvf & in) const
+{
+#if defined(__AVX__)
+  _mm256_stream_ps(out, in);
+#else
+  _mm_stream_ps(out, in);
+#endif
+}
+
+template<>
+inline void
+AccessStreamed<double>::store(double * const __restrict out,
+    const AccessStreamed<double>::vVvf & in) const
+{
+#if defined(__AVX__)
+  _mm256_stream_pd(out, in);
+#else
+  _mm_stream_pd(out, in);
+#endif
+}
+
+template<typename Type>
 class AccessUnaligned {
 public:
   typedef typename SIMDUnrolling<Type>::vVvf vVvf;
