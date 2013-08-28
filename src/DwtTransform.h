@@ -98,6 +98,8 @@ template<typename Type>
 void
 dwt::DwtTransform<Type>::direct(DwtVolume<Type> & vol)
 {
+  DwtVolume<Type> * previous_subvol = &vol;
+
   const size_t levels = this->buffers.size() / 2;
   const vector<size_t> & dims = vol.get_dims();
   const size_t & num_dims = dims.size();
@@ -106,7 +108,7 @@ dwt::DwtTransform<Type>::direct(DwtVolume<Type> & vol)
     DwtVolume<Type> * subvol = this->buffers[2 * level];
     DwtVolume<Type> * temp_subvol = this->buffers[2 * level + 1];
 
-    vol.get_sub_volume(*subvol);
+    previous_subvol->get_sub_volume(*subvol);
 
     for (size_t dim = 0; dim < num_dims; dim++)
     {
@@ -129,6 +131,12 @@ dwt::DwtTransform<Type>::direct(DwtVolume<Type> & vol)
       }
       swap(subvol, temp_subvol);
     }
+    previous_subvol = subvol;
+  }
+
+  for(size_t level = 0; level < levels; level++)
+  {
+    DwtVolume<Type> * const subvol = this->buffers[2 * level + (num_dims % 2)];
     vol.set_sub_volume(*subvol);
   }
 }
@@ -137,7 +145,15 @@ template<typename Type>
 void
 dwt::DwtTransform<Type>::inverse(DwtVolume<Type> & vol)
 {
+  DwtVolume<Type> * previous_subvol = &vol;
   const size_t levels = this->buffers.size() / 2;
+  for (size_t level = 0; level < levels; level++)
+  {
+    DwtVolume<Type> * subvol = this->buffers[2 * level];
+    previous_subvol->get_sub_volume(*subvol);
+    previous_subvol = subvol;
+  }
+
   const vector<size_t> & dims = vol.get_dims();
   const size_t & num_dims = dims.size();
   for (size_t level = 0; level < levels; level++)
@@ -146,8 +162,6 @@ dwt::DwtTransform<Type>::inverse(DwtVolume<Type> & vol)
 
     DwtVolume<Type> * subvol = this->buffers[2 * effective_level];
     DwtVolume<Type> * temp_subvol = this->buffers[2 * effective_level + 1];
-
-    vol.get_sub_volume(*subvol);
 
     for (size_t dim = num_dims; dim > 0; dim--)
     {
@@ -170,8 +184,14 @@ dwt::DwtTransform<Type>::inverse(DwtVolume<Type> & vol)
       }
       swap(subvol, temp_subvol);
     }
-    vol.set_sub_volume(*subvol);
+    if (effective_level)
+    {
+      DwtVolume<Type> * next_subvol = this->buffers[2 * (effective_level-1)];
+      next_subvol->set_sub_volume(*subvol);
+    }
   }
+  DwtVolume<Type> * const subvol = this->buffers[(num_dims % 2)];
+  vol.set_sub_volume(*subvol);
 }
 
 template<typename Type>
