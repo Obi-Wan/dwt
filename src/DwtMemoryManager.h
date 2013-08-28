@@ -134,12 +134,13 @@ dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(
   const size_t & src_pitch_1 = props.src_skip[0];
   const size_t & src_pitch_2 = props.src_skip[1];
 
-  typedef Type vVvf __attribute__((vector_size(DWT_SAFE_MEMORY_ALIGN))) __attribute__((aligned(DWT_SAFE_MEMORY_ALIGN)));
-  const size_t unrolling = 4;
-  const size_t shift = DWT_SAFE_MEMORY_ALIGN / sizeof(Type);
-  const size_t block = shift * unrolling;
+  SIMDUnrolling<Type, DWT_SAFE_MEMORY_ALIGN> simd(4);
+  typedef typename SIMDUnrolling<Type, DWT_SAFE_MEMORY_ALIGN>::vVvf vVvf;
+  const size_t & shift = simd.shift;
+  const size_t & block = simd.block;
 
-  const size_t unroll_line_length = ROUND_DOWN(line_length, block);
+  const size_t unroll_line_length = simd.get_unroll(line_length);
+
 
 #pragma omp for
   for(size_t num_area = 0; num_area < tot_areas; num_area++)

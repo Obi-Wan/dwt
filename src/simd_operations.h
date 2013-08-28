@@ -14,14 +14,14 @@
 
 namespace dwt {
 
-template<typename Type>
+template<typename Type, size_t v_size = DWT_VECTOR_SIZE>
 class SIMDUnrolling {
 public:
   const size_t shift;
   const size_t unrolling;
   const size_t block;
 
-  typedef Type vVvf __attribute__((vector_size(DWT_VECTOR_SIZE))) __attribute__((aligned(DWT_VECTOR_SIZE)));
+  typedef Type vVvf __attribute__((vector_size(v_size))) __attribute__((aligned(v_size)));
 
   SIMDUnrolling(const size_t & _unroll)
   : shift(DWT_VECTOR_SIZE / sizeof(Type)), unrolling(_unroll)
@@ -73,10 +73,10 @@ public:
   }
 };
 
-template<typename Type>
+template<typename Type, size_t v_size = DWT_VECTOR_SIZE>
 class AccessAligned {
 public:
-  typedef typename SIMDUnrolling<Type>::vVvf vVvf;
+  typedef typename SIMDUnrolling<Type, v_size>::vVvf vVvf;
 
   const vVvf load(const Type * const __restrict in) const
   {
@@ -88,37 +88,53 @@ public:
   }
 };
 
-template<typename Type>
-class AccessStreamed : public AccessAligned<Type> {
+template<typename Type, size_t v_size = DWT_VECTOR_SIZE>
+class AccessStreamed : public AccessAligned<Type, v_size> {
 public:
-  typedef typename AccessAligned<Type>::vVvf vVvf;
+  typedef typename AccessAligned<Type, v_size>::vVvf vVvf;
 
   void store(Type * const __restrict out, const vVvf & in) const;
 };
 
+#if defined(__AVX__)
 template<>
 inline void
-AccessStreamed<float>::store(float * const __restrict out,
-    const AccessStreamed<float>::vVvf & in) const
+AccessStreamed<float, 32>::store(float * const __restrict out,
+    const AccessStreamed<float, 32>::vVvf & in) const
 {
-#if defined(__AVX__)
   _mm256_stream_ps(out, in);
-#else
-  _mm_stream_ps(out, in);
-#endif
 }
+#endif
 
+#if defined(__SSE2__)
 template<>
 inline void
-AccessStreamed<double>::store(double * const __restrict out,
-    const AccessStreamed<double>::vVvf & in) const
+AccessStreamed<float, 16>::store(float * const __restrict out,
+    const AccessStreamed<float, 16>::vVvf & in) const
 {
-#if defined(__AVX__)
-  _mm256_stream_pd(out, in);
-#else
-  _mm_stream_pd(out, in);
-#endif
+  _mm_stream_ps(out, in);
 }
+#endif
+
+#if defined(__AVX__)
+template<>
+inline void
+AccessStreamed<double, 32>::store(double * const __restrict out,
+    const AccessStreamed<double, 32>::vVvf & in) const
+{
+  _mm256_stream_pd(out, in);
+}
+#endif
+
+#if defined(__SSE2__)
+template<>
+inline void
+AccessStreamed<double, 16>::store(double * const __restrict out,
+    const AccessStreamed<double, 16>::vVvf & in) const
+{
+  _mm_stream_pd(out, in);
+}
+#endif
 
 template<typename Type>
 class AccessUnaligned {
