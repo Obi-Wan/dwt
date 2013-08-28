@@ -9,6 +9,7 @@
 #define DWTMEMORYMANAGER_H_
 
 #include "dwt_definitions.h"
+#include "simd_operations.h"
 
 #include <vector>
 
@@ -117,11 +118,11 @@ dwt::DwtMemoryManager::UNOPTIM(strided_3D_copy)(
   COPY_V(out, in, counter, offset+1); \
   COPY_V(out, in, counter, offset+2); \
   COPY_V(out, in, counter, offset+3)
-#define SAFE_DWT_MEMORY_ALIGN 16
 
 template<typename Type>
 INLINE void
-dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(Type * const dest, const Type * const src, const CopyProperties & props)
+dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(
+    Type * const dest, const Type * const src, const CopyProperties & props)
 {
   const size_t & line_length = props.dims[0];
   const size_t & tot_lines = props.dims[1];
@@ -133,9 +134,9 @@ dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(Type * const dest, const Type
   const size_t & src_pitch_1 = props.src_skip[0];
   const size_t & src_pitch_2 = props.src_skip[1];
 
-  typedef float vVvf __attribute__((vector_size(SAFE_DWT_MEMORY_ALIGN))) __attribute__((aligned(SAFE_DWT_MEMORY_ALIGN)));
+  typedef Type vVvf __attribute__((vector_size(DWT_SAFE_MEMORY_ALIGN))) __attribute__((aligned(DWT_SAFE_MEMORY_ALIGN)));
   const size_t unrolling = 4;
-  const size_t shift = SAFE_DWT_MEMORY_ALIGN / sizeof(Type);
+  const size_t shift = DWT_SAFE_MEMORY_ALIGN / sizeof(Type);
   const size_t block = shift * unrolling;
 
   const size_t unroll_line_length = ROUND_DOWN(line_length, block);
@@ -148,8 +149,8 @@ dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(Type * const dest, const Type
 
     for(size_t num_line = 0; num_line < tot_lines; num_line++)
     {
-      const Type * const src_line = src_area + num_line * src_pitch_1;
-      Type * const dest_line = dest_area + num_line * dest_pitch_1;
+      const Type * __restrict const src_line = src_area + num_line * src_pitch_1;
+      Type * __restrict const dest_line = dest_area + num_line * dest_pitch_1;
 
       for(size_t pixel = 0; pixel < unroll_line_length; pixel += block)
       {
@@ -165,7 +166,6 @@ dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(Type * const dest, const Type
 }
 #undef COPY_V
 #undef COPY_V_4
-#undef SAFE_DWT_MEMORY_ALIGN
 
 template<typename Type>
 Type *

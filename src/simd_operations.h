@@ -21,10 +21,10 @@ public:
   const size_t unrolling;
   const size_t block;
 
-  typedef Type vVvf __attribute__((vector_size(DWT_MEMORY_ALIGN))) __attribute__((aligned(DWT_MEMORY_ALIGN)));
+  typedef Type vVvf __attribute__((vector_size(DWT_VECTOR_SIZE))) __attribute__((aligned(DWT_VECTOR_SIZE)));
 
   SIMDUnrolling(const size_t & _unroll)
-  : shift(DWT_MEMORY_ALIGN / sizeof(Type)), unrolling(_unroll)
+  : shift(DWT_VECTOR_SIZE / sizeof(Type)), unrolling(_unroll)
   , block(shift * unrolling)
   { }
 

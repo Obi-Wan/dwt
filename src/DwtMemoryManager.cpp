@@ -38,9 +38,8 @@ namespace dwt {
   void *
   DwtMemoryManager::allocate(const size_t & num_bytes)
   {
-    void * out = NULL;
-    const int ret_val = posix_memalign(&out, DWT_MEMORY_ALIGN, num_bytes);
-    if (ret_val)
+    void * out = _mm_malloc(num_bytes, DWT_MEMORY_ALIGN);
+    if (!out)
     {
       DwtExceptionBuilder exc_builder;
       throw exc_builder.build<DwtWrongArgumentException>(

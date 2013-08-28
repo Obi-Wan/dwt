@@ -105,10 +105,13 @@ typedef unsigned __int64 uint64_t;
 #endif
 
 #ifdef __AVX__
-# define DWT_MEMORY_ALIGN 32
+# define DWT_VECTOR_SIZE 32
 #else
-# define DWT_MEMORY_ALIGN 16
+# define DWT_VECTOR_SIZE 16
 #endif
+
+#define DWT_MEMORY_ALIGN 64
+#define DWT_SAFE_MEMORY_ALIGN 16
 
 using namespace std;
 
