@@ -111,6 +111,21 @@ dwt::DwtMemoryManager::UNOPTIM(strided_3D_copy)(
   }
 }
 
+#define LOAD_ACCESS_V(access, in, counter, offset) \
+  const vVvf input##offset = access.load(&in[counter + (offset) * shift])
+#define STORE_ACCESS_V(access, out, counter, offset) \
+  access.store(&out[counter + (offset) * shift], input##offset)
+
+#define COPY_ACCESS_V_4(access, out, in, counter) \
+    LOAD_ACCESS_V(access, in, counter, 0); \
+    LOAD_ACCESS_V(access, in, counter, 1); \
+    LOAD_ACCESS_V(access, in, counter, 2); \
+    LOAD_ACCESS_V(access, in, counter, 3); \
+    STORE_ACCESS_V(access, out, counter, 0); \
+    STORE_ACCESS_V(access, out, counter, 1); \
+    STORE_ACCESS_V(access, out, counter, 2); \
+    STORE_ACCESS_V(access, out, counter, 3)
+
 #define COPY_V(out, in, counter, offset) \
   *(vVvf *)&out[counter + (offset) * shift] = *(vVvf *)&in[counter + (offset) * shift]
 #define COPY_V_4(out, in, counter, offset) \
@@ -141,6 +156,7 @@ dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(
 
   const size_t unroll_line_length = simd.get_unroll(line_length);
 
+  AccessStreamed<Type, DWT_SAFE_MEMORY_ALIGN> access;
 
 #pragma omp for
   for(size_t num_area = 0; num_area < tot_areas; num_area++)
@@ -155,7 +171,7 @@ dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(
 
       for(size_t pixel = 0; pixel < unroll_line_length; pixel += block)
       {
-        COPY_V_4(dest_line, src_line, pixel, 0);
+        COPY_ACCESS_V_4(access, dest_line, src_line, pixel);
       }
 
       for(size_t pixel = unroll_line_length; pixel < line_length; pixel++)
@@ -167,6 +183,9 @@ dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(
 }
 #undef COPY_V
 #undef COPY_V_4
+#undef LOAD_ACCESS_V
+#undef STORE_ACCESS_V
+#undef COPY_ACCESS_V_4
 
 template<typename Type>
 Type *
