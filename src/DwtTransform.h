@@ -445,11 +445,11 @@ dwt::DwtTransform<Type>::VECTORIZED(direct_dim_0)(DwtVolume<Type> & dest, const 
 
   const size_t area_length = pitch * tot_lines;
 
-  const size_t unrolling = 2;
-  const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
-  const size_t block = shift * unrolling;
+  const SIMDUnrolling<Type> params(2);
+  const size_t & shift = params.shift;
+  const size_t & block = params.block;
 
-  const size_t unroll_line_length = ROUND_DOWN(line_length, block);
+  const size_t unroll_line_length = params.get_unroll(line_length);
 
   OpDim0<access, Type> op(shift);
 
@@ -498,11 +498,11 @@ dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_0)(DwtVolume<Type> & dest, const
 
   const size_t area_length = pitch * tot_lines;
 
-  const size_t unrolling = 2;
-  const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
-  const size_t block = shift * unrolling;
+  const SIMDUnrolling<Type> params(2);
+  const size_t & shift = params.shift;
+  const size_t & block = params.block;
 
-  const size_t unroll_line_length = ROUND_DOWN(line_length / 2, block);
+  const size_t unroll_line_length = params.get_unroll(line_length / 2);
 
   OpDim0<access, Type> op(shift);
 
@@ -552,11 +552,11 @@ dwt::DwtTransform<Type>::VECTORIZED(direct_dim_1)(DwtVolume<Type> & dest, const 
 
   const size_t area_length = pitch * tot_lines;
 
-  const size_t unrolling = 4;
-  const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
-  const size_t block = shift * unrolling;
+  const SIMDUnrolling<Type> params(4);
+  const size_t & shift = params.shift;
+  const size_t & block = params.block;
 
-  const size_t unroll_line_length = ROUND_DOWN(line_length, block);
+  const size_t unroll_line_length = params.get_unroll(line_length);
 
   const vVvf coeff = Coeff<Type>::get();
 
@@ -618,11 +618,11 @@ dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_1)(DwtVolume<Type> & dest, const
 
   const size_t area_length = pitch * tot_lines;
 
-  const size_t unrolling = 4;
-  const size_t shift = DWT_MEMORY_ALIGN / sizeof(Type);
-  const size_t block = shift * unrolling;
+  const SIMDUnrolling<Type> params(4);
+  const size_t & shift = params.shift;
+  const size_t & block = params.block;
 
-  const size_t unroll_line_length = ROUND_DOWN(line_length, block);
+  const size_t unroll_line_length = params.get_unroll(line_length);
 
   const vVvf coeff = Coeff<Type>::get();
 
