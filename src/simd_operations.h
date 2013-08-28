@@ -265,11 +265,11 @@ public:
     const vVvf vecAdd = _mm256_add_ps(inVec1, inVec2) * coeff;
     const vVvf vecSub = _mm256_sub_ps(inVec1, inVec2) * coeff;
 
-    const vVvf shuffle1 = _mm256_permute2f128_ps(vecAdd, vecSub, 0x13);
-    const vVvf shuffle2 = _mm256_permute2f128_ps(vecAdd, vecSub, 0x02);
+    const vVvf unpacked1 = _mm256_unpacklo_ps(vecAdd, vecSub);
+    const vVvf unpacked2 = _mm256_unpackhi_ps(vecAdd, vecSub);
 
-    const vVvf outVec1 = _mm256_unpacklo_ps(shuffle1, shuffle2);
-    const vVvf outVec2 = _mm256_unpackhi_ps(shuffle1, shuffle2);
+    const vVvf outVec1 = _mm256_permute2f128_ps(unpacked1, unpacked2, 0x20);
+    const vVvf outVec2 = _mm256_permute2f128_ps(unpacked1, unpacked2, 0x31);
 #else
     const vVvf vecAdd = _mm_add_ps(inVec1, inVec2) * coeff;
     const vVvf vecSub = _mm_sub_ps(inVec1, inVec2) * coeff;
