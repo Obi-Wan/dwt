@@ -156,7 +156,7 @@ dwt::DwtMemoryManager::VECTORIZED(strided_3D_copy)(
 
   const size_t unroll_line_length = simd.get_unroll(line_length);
 
-  AccessStreamed<Type, DWT_SAFE_MEMORY_ALIGN> access;
+  AccessAligned<Type, DWT_SAFE_MEMORY_ALIGN> access;
 
 #pragma omp for
   for(size_t num_area = 0; num_area < tot_areas; num_area++)
