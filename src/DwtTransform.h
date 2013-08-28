@@ -828,8 +828,6 @@ dwt::DwtTransform<Type>::VECTORIZED(soft_threshold)(DwtVolume<Type> & dest, cons
   const SIMDUnrolling<Type> params_8(8);
   const SIMDUnrolling<Type> params_1(1);
 
-  const size_t unroll_num_elems = params_8.get_unroll(num_elems);
-
   SoftThreshold<Type> func = SoftThreshold<Type>(thr);
 
 #pragma omp for nowait
