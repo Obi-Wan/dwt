@@ -33,34 +33,7 @@ public:
   {
     return ROUND_DOWN(tot_size, block);
   }
-
-  void
-  copy(Type * const dest, const Type * const src) const;
 };
-
-#ifdef __AVX__
-template<>
-void
-SIMDUnrolling<float>::copy(float * const dest, const float * const src) const
-{
-  _mm256_store_ps(dest, _mm256_loadu_ps(src));
-}
-
-template<>
-void
-SIMDUnrolling<double>::copy(double * const dest, const double * const src) const
-{
-  _mm256_store_pd(dest, _mm256_loadu_pd(src));
-}
-#else
-template<typename Type>
-void
-SIMDUnrolling<Type>::copy(Type * const dest, const Type * const src) const
-{
-  *(vVvf *)dest = *(vVvf *)src;
-}
-#endif
-
 
 template<typename Type>
 class Coeff {
