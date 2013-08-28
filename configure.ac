@@ -21,6 +21,11 @@ CXXFLAGS="${CXXFLAGS=}"
 AC_SUBST([CFLAGS],["${CFLAGS} -Wall"])
 AC_SUBST([CXXFLAGS],["${CXXFLAGS} -Wall"])
 
+AC_ARG_VAR([OPTIM_FLAGS], [Optimization flags (i.e. -march=native, -msse3)])
+OPTIM_FLAGS="${OPTIM_FLAGS=}"
+AC_SUBST([CXXFLAGS],["${CXXFLAGS} ${OPTIM_FLAGS}"])
+AC_SUBST([LDFLAGS],["${LDFLAGS} ${OPTIM_FLAGS}"])
+
 my_save_cflags="$CFLAGS"
 CFLAGS="-std=c++11"
 AC_MSG_CHECKING([whether CC supports the flag -std=c++11])
@@ -32,6 +37,27 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
 )
 CFLAGS="$my_save_cflags"
 AC_SUBST([CXXFLAGS],["${CXXFLAGS} ${CPP_11_FLAG}"])
+
+my_save_cflags="$CFLAGS"
+CFLAGS="-fstrict-aliasing"
+AC_MSG_CHECKING([whether CC supports the flag -fstrict-aliasing])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+    [AC_MSG_RESULT([yes])]
+    AC_SUBST([CXXFLAGS],["${CXXFLAGS} -fstrict-aliasing"]),
+    [AC_MSG_RESULT([no])]
+)
+CFLAGS="$my_save_cflags"
+
+my_save_cflags="$CFLAGS"
+CFLAGS="-fPIC"
+AC_MSG_CHECKING([whether CC supports the flag -fPIC])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+    [AC_MSG_RESULT([yes])]
+    AC_SUBST([CXXFLAGS],["${CXXFLAGS} -fPIC"])
+    AC_SUBST([LDFLAGS],["${LDFLAGS} -fPIC"]),
+    [AC_MSG_RESULT([no])]
+)
+CFLAGS="$my_save_cflags"
 
 ###############################################################################
 # Definitions
@@ -180,7 +206,6 @@ dnl
 dnl Output the features included
 dnl
 echo ""
-echo "        CFLAGS:          $CFLAGS"
 echo "        CXXFLAGS:        $CXXFLAGS"
 echo ""
 echo "        Vectorization:   $enable_vector"
