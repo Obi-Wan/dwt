@@ -73,14 +73,14 @@ public:
 template<>
 class Coeff<float> {
 public:
-  typedef typename SIMDUnrolling<float>::vVvf vVvf;
+  typedef SIMDUnrolling<float>::vVvf vVvf;
 
   static const vVvf get(const float & coeff = COEFF)
   {
 #if defined(__AVX__)
-    return (const vVvf) {coeff, coeff, coeff, coeff, coeff, coeff, coeff, coeff};
+    return (const vVvf) _mm256_set1_ps(coeff);
 #else
-    return (const vVvf) {coeff, coeff, coeff, coeff};
+    return (const vVvf) _mm_set1_ps(coeff);
 #endif
   }
 };
@@ -88,14 +88,14 @@ public:
 template<>
 class Coeff<double> {
 public:
-  typedef typename SIMDUnrolling<double>::vVvf vVvf;
+  typedef SIMDUnrolling<double>::vVvf vVvf;
 
   static const vVvf get(const double & coeff = COEFF)
   {
 #if defined(__AVX__)
-    return (const vVvf) {coeff, coeff, coeff, coeff};
+    return (const vVvf) _mm256_set1_pd(coeff);
 #else
-    return (const vVvf) {coeff, coeff};
+    return (const vVvf) _mm_set1_pd(coeff);
 #endif
   }
 };
@@ -203,19 +203,23 @@ public:
     const vVvf inVec2 = *((const vVvf *)(in+shift));
 
 #if defined(__AVX__)
-    *((vVvf *)out1) = _mm256_hadd_ps(inVec1, inVec2) * coeff;
-    const vVvf outVec2 = _mm256_hsub_ps(inVec1, inVec2) * coeff;
+    const vVvf shuffle1 = _mm256_permute2f128_pd(inVec1, inVec2, 0x20);
+    const vVvf shuffle2 = _mm256_permute2f128_pd(inVec1, inVec2, 0x31);
+
+    const vVvf outVec1 = _mm256_hadd_ps(shuffle1, shuffle2) * coeff;
+    const vVvf outVec2 = _mm256_hsub_ps(shuffle1, shuffle2) * coeff;
 #elif defined(__SSE3__)
-    *((vVvf *)out1) = _mm_hadd_ps(inVec1, inVec2) * coeff;
+    const vVvf outVec1 = _mm_hadd_ps(inVec1, inVec2) * coeff;
     const vVvf outVec2 = _mm_hsub_ps(inVec1, inVec2) * coeff;
 #else
     const vVvf shuffled1 = _mm_shuffle_ps(inVec1, inVec2, _MM_SHUFFLE(2, 0, 2, 0));
     const vVvf shuffled2 = _mm_shuffle_ps(inVec1, inVec2, _MM_SHUFFLE(3, 1, 3, 1));
 
-    *((vVvf *)out1) = _mm_add_ps(shuffled1, shuffled2) * coeff;
+    const vVvf outVec1 = _mm_add_ps(shuffled1, shuffled2) * coeff;
     const vVvf outVec2 = _mm_sub_ps(shuffled1, shuffled2) * coeff;
 #endif
 
+    *((vVvf *)out1) = outVec1;
     accessor.store(out2, outVec2);
   }
 
@@ -232,15 +236,18 @@ public:
     const vVvf shuffle1 = _mm256_permute2f128_ps(vecAdd, vecSub, 0x13);
     const vVvf shuffle2 = _mm256_permute2f128_ps(vecAdd, vecSub, 0x02);
 
-    *((vVvf *)out) = _mm256_unpacklo_ps(shuffle1, shuffle2);
-    *((vVvf *)(out+shift)) = _mm256_unpackhi_ps(shuffle1, shuffle2);
+    const vVvf outVec1 = _mm256_unpacklo_ps(shuffle1, shuffle2);
+    const vVvf outVec2 = _mm256_unpackhi_ps(shuffle1, shuffle2);
 #else
     const vVvf vecAdd = _mm_add_ps(inVec1, inVec2) * coeff;
     const vVvf vecSub = _mm_sub_ps(inVec1, inVec2) * coeff;
 
-    *((vVvf *)out) = _mm_unpacklo_ps(vecAdd, vecSub);
-    *((vVvf *)(out+shift)) = _mm_unpackhi_ps(vecAdd, vecSub);
+    const vVvf outVec1 = _mm_unpacklo_ps(vecAdd, vecSub);
+    const vVvf outVec2 = _mm_unpackhi_ps(vecAdd, vecSub);
 #endif
+
+    *((vVvf *)out) = outVec1;
+    *((vVvf *)(out+shift)) = outVec2;
   }
 protected:
   const vVvf coeff;
