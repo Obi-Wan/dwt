@@ -129,7 +129,7 @@ class AccessUnaligned<double> {
 public:
   typedef typename SIMDUnrolling<double>::vVvf vVvf;
 
-  const vVvf load(const double * const __restrict in) const
+  const vVvf load(const double * const in) const
   {
 #if defined(__AVX__)
     return _mm256_loadu_pd(in);
@@ -137,7 +137,7 @@ public:
     return _mm_loadu_pd(in);
 #endif
   }
-  void store(double * const __restrict out, const vVvf & in) const
+  void store(double * const out, const vVvf & in) const
   {
 #if defined(__AVX__)
     _mm256_storeu_pd(out, in);

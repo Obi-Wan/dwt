@@ -461,9 +461,9 @@ dwt::DwtTransform<Type>::VECTORIZED(direct_dim_0)(DwtVolume<Type> & dest, const 
 
     for (size_t line_num = 0; line_num < tot_lines; line_num++)
     {
-      const Type * const src_line = src_area + pitch * line_num;
-      Type * const dest_line = dest_area + pitch * line_num;
-      Type * const dest_half_line = dest_line + line_length / 2;
+      const Type * __restrict const src_line = src_area + pitch * line_num;
+      Type * __restrict const dest_line = dest_area + pitch * line_num;
+      Type * __restrict const dest_half_line = dest_line + line_length / 2;
 
       for (size_t src_pixel = 0, dest_pixel = 0;
           src_pixel < unroll_line_length; src_pixel += block, dest_pixel += block/2)
@@ -514,9 +514,9 @@ dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_0)(DwtVolume<Type> & dest, const
 
     for(size_t line_num = 0; line_num < tot_lines; line_num++)
     {
-      const Type * const src_line = src_area + pitch * line_num;
-      const Type * const src_half_line = src_line + line_length / 2;
-      Type * const dest_line = dest_area + pitch * line_num;
+      const Type * __restrict const src_line = src_area + pitch * line_num;
+      const Type * __restrict const src_half_line = src_line + line_length / 2;
+      Type * __restrict const dest_line = dest_area + pitch * line_num;
 
       for(size_t src_pixel = 0, dest_pixel = 0; src_pixel < unroll_line_length;
           src_pixel += block, dest_pixel += 2*block)
@@ -568,11 +568,13 @@ dwt::DwtTransform<Type>::VECTORIZED(direct_dim_1)(DwtVolume<Type> & dest, const 
 
     for(size_t line_num = 0; line_num < tot_lines; line_num += 2)
     {
-      const Type * const src_line = src_area + pitch * line_num;
-      const Type * const src_next_line = src_line + pitch;
+      const Type * __restrict const src_line = src_area + pitch * line_num;
+      const Type * __restrict const src_next_line = src_line + pitch;
 
-      Type * const dest_line = dest_area + pitch * line_num / 2;
-      Type * const dest_half_num_lines = dest_area + pitch * (line_num + tot_lines) / 2;
+      Type * __restrict const dest_line =
+          dest_area + pitch * line_num / 2;
+      Type * __restrict const dest_half_num_lines =
+          dest_area + pitch * (line_num + tot_lines) / 2;
 
       for(size_t pixel = 0; pixel < unroll_line_length; pixel += block)
       {
@@ -632,11 +634,13 @@ dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_1)(DwtVolume<Type> & dest, const
 
     for(size_t line_num = 0; line_num < tot_lines; line_num += 2)
     {
-      const Type * const src_line = src_area + pitch * line_num / 2;
-      const Type * const src_half_num_lines = src_area + pitch * (line_num + tot_lines) / 2;
+      const Type * __restrict const src_line =
+          src_area + pitch * line_num / 2;
+      const Type * __restrict const src_half_num_lines =
+          src_area + pitch * (line_num + tot_lines) / 2;
 
-      Type * const dest_line = dest_area + pitch * line_num;
-      Type * const dest_next_line = dest_line + pitch;
+      Type * __restrict const dest_line = dest_area + pitch * line_num;
+      Type * __restrict const dest_next_line = dest_line + pitch;
 
       for(size_t pixel = 0; pixel < unroll_line_length; pixel += block)
       {
@@ -690,11 +694,13 @@ dwt::DwtTransform<Type>::VECTORIZED(direct_dim_2)(DwtVolume<Type> & dest, const 
 #pragma omp for
   for (size_t area_num = 0; area_num < tot_areas; area_num += 2)
   {
-    const Type * const src_area = src.get_data() + area_length * area_num;
-    const Type * const src_next_area = src_area + area_length;
+    const Type * __restrict const src_area = src.get_data() + area_length * area_num;
+    const Type * __restrict const src_next_area = src_area + area_length;
 
-    Type * const dest_area = dest.get_data() + area_length * area_num / 2;
-    Type * const dest_half_num_areas = dest.get_data() + area_length * (area_num + tot_areas) / 2;
+    Type * __restrict const dest_area =
+        dest.get_data() + area_length * area_num / 2;
+    Type * __restrict const dest_half_num_areas =
+        dest.get_data() + area_length * (area_num + tot_areas) / 2;
 
     for(size_t pixel = 0; pixel < unroll_area_length; pixel += block)
     {
@@ -762,11 +768,13 @@ dwt::DwtTransform<Type>::VECTORIZED(inverse_dim_2)(DwtVolume<Type> & dest, const
 #pragma omp for
   for (size_t area_num = 0; area_num < tot_areas; area_num += 2)
   {
-    const Type * const src_area = src.get_data() + area_length * area_num / 2;
-    const Type * const src_half_num_areas = src.get_data() + area_length * (area_num + tot_areas) / 2;
+    const Type * __restrict const src_area =
+        src.get_data() + area_length * area_num / 2;
+    const Type * __restrict const src_half_num_areas =
+        src.get_data() + area_length * (area_num + tot_areas) / 2;
 
-    Type * const dest_area = dest.get_data() + area_length * area_num;
-    Type * const dest_next_area = dest_area + area_length;
+    Type * __restrict const dest_area = dest.get_data() + area_length * area_num;
+    Type * __restrict const dest_next_area = dest_area + area_length;
 
     for(size_t pixel = 0; pixel < unroll_area_length; pixel += block)
     {
