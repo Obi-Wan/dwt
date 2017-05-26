@@ -9,6 +9,21 @@ are permitted in any medium without royalty provided the copyright
 notice and this notice are preserved.  This file is offered as-is,
 without warranty of any kind.
 
+TL;DR
+=====
+
+   If you just want to skip ahead and simply compile DWT, without knowing any
+details about autotools, the following commands should be enough to get the
+library in a usable state:
+
+     libtoolize
+     aclocal
+     autoheader
+     automake --add-missing
+     autoconf
+     ./configure
+     make
+
 Basic Installation
 ==================
 
